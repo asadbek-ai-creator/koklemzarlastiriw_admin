@@ -1,0 +1,282 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "API",
+        "version": "1.0.0"
+    },
+    "host": "duk-backend.onrender.com",
+    "basePath": "/api/v1",
+    "schemes": ["https"],
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT token. Format: Bearer \u003ctoken\u003e"
+        }
+    },
+    "paths": {
+        "/auth/login": {
+            "post": {
+                "tags": ["auth"],
+                "summary": "Authenticate user",
+                "description": "Validates credentials and returns JWT access token (24h) + refresh token (7d).",
+                "operationId": "login",
+                "parameters": [{"in":"body","name":"body","required":true,"schema":{"$ref":"#/definitions/LoginRequest"}}],
+                "responses": {
+                    "200": {"description":"Successful login","schema":{"$ref":"#/definitions/LoginResponseEnvelope"}},
+                    "400": {"description":"Bad request"},
+                    "401": {"description":"Invalid credentials"}
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "tags": ["auth"],
+                "summary": "Refresh access token",
+                "operationId": "refreshToken",
+                "parameters": [{"in":"body","name":"body","required":true,"schema":{"$ref":"#/definitions/RefreshRequest"}}],
+                "responses": {"200":{"description":"New access token"},"401":{"description":"Invalid refresh token"}}
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "tags": ["auth"],
+                "summary": "Get current user profile",
+                "security": [{"BearerAuth":[]}],
+                "responses": {
+                    "200": {"description":"User profile","schema":{"$ref":"#/definitions/UserEnvelope"}},
+                    "401": {"description":"Unauthorized"}
+                }
+            }
+        },
+        "/auth/change-password": {
+            "put": {
+                "tags": ["auth"],
+                "summary": "Change own password",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"body","name":"body","required":true,"schema":{"$ref":"#/definitions/ChangePasswordRequest"}}],
+                "responses": {"200":{"description":"Password changed"},"400":{"description":"Bad request"}}
+            }
+        },
+        "/users": {
+            "get": {
+                "tags": ["users"],
+                "summary": "List users (Admin+)",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [
+                    {"in":"query","name":"page","type":"integer"},
+                    {"in":"query","name":"limit","type":"integer"},
+                    {"in":"query","name":"role","type":"string","enum":["super_admin","admin","district_admin","auditor"]},
+                    {"in":"query","name":"search","type":"string"}
+                ],
+                "responses": {"200":{"description":"User list"},"403":{"description":"Forbidden"}}
+            },
+            "post": {
+                "tags": ["users"],
+                "summary": "Create new user (Admin+)",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"body","name":"body","required":true,"schema":{"$ref":"#/definitions/RegisterRequest"}}],
+                "responses": {"201":{"description":"User created"},"400":{"description":"Validation error"},"403":{"description":"Role hierarchy violation"}}
+            }
+        },
+        "/users/{id}/deactivate": {
+            "put": {
+                "tags": ["users"],
+                "summary": "Deactivate user (SuperAdmin only)",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"path","name":"id","required":true,"type":"string","format":"uuid"}],
+                "responses": {"200":{"description":"Deactivated"},"403":{"description":"SuperAdmin only"},"404":{"description":"Not found"}}
+            }
+        },
+        "/applications": {
+            "get": {
+                "tags": ["applications"],
+                "summary": "List applications (role-filtered)",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [
+                    {"in":"query","name":"page","type":"integer"},
+                    {"in":"query","name":"limit","type":"integer"},
+                    {"in":"query","name":"status","type":"string","enum":["draft","pending_admin","rejected_admin","pending_superadmin","rejected_superadmin","approved","clarification_needed","watering_in_progress","completed"]},
+                    {"in":"query","name":"district_id","type":"string","format":"uuid"},
+                    {"in":"query","name":"date_from","type":"string","format":"date"},
+                    {"in":"query","name":"date_to","type":"string","format":"date"},
+                    {"in":"query","name":"search","type":"string"}
+                ],
+                "responses": {"200":{"description":"Application list","schema":{"$ref":"#/definitions/ApplicationListEnvelope"}}}
+            },
+            "post": {
+                "tags": ["applications"],
+                "summary": "Create application — District Admin only",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"body","name":"body","required":true,"schema":{"$ref":"#/definitions/CreateApplicationRequest"}}],
+                "responses": {"201":{"description":"Created"},"400":{"description":"Validation error"},"403":{"description":"District Admin only"}}
+            }
+        },
+        "/applications/{id}": {
+            "get": {
+                "tags": ["applications"],
+                "summary": "Get application by ID",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"path","name":"id","required":true,"type":"string","format":"uuid"}],
+                "responses": {"200":{"description":"Application detail","schema":{"$ref":"#/definitions/ApplicationEnvelope"}},"404":{"description":"Not found"}}
+            },
+            "put": {
+                "tags": ["applications"],
+                "summary": "Update draft application — District Admin only",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [
+                    {"in":"path","name":"id","required":true,"type":"string","format":"uuid"},
+                    {"in":"body","name":"body","required":true,"schema":{"$ref":"#/definitions/UpdateApplicationRequest"}}
+                ],
+                "responses": {"200":{"description":"Updated"},"400":{"description":"Invalid status or data"}}
+            },
+            "delete": {
+                "tags": ["applications"],
+                "summary": "Delete draft application — District Admin only",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"path","name":"id","required":true,"type":"string","format":"uuid"}],
+                "responses": {"200":{"description":"Deleted"},"400":{"description":"Not in draft"}}
+            }
+        },
+        "/applications/{id}/submit": {
+            "post": {
+                "tags": ["applications"],
+                "summary": "Submit for admin review — District Admin",
+                "description": "Transitions: Draft → Pending Admin  OR  Clarification Needed → Pending Admin",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"path","name":"id","required":true,"type":"string","format":"uuid"}],
+                "responses": {"200":{"description":"Submitted"},"400":{"description":"Invalid transition"}}
+            }
+        },
+        "/applications/{id}/review": {
+            "post": {
+                "tags": ["applications"],
+                "summary": "Admin review: approve / reject / clarify",
+                "description": "**approve** → Pending SuperAdmin | **reject** → Rejected (Admin) | **clarify** → Clarification Needed",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [
+                    {"in":"path","name":"id","required":true,"type":"string","format":"uuid"},
+                    {"in":"body","name":"body","required":true,"schema":{"$ref":"#/definitions/ReviewRequest"}}
+                ],
+                "responses": {"200":{"description":"Review applied"},"400":{"description":"Validation error"},"403":{"description":"Admin only"}}
+            }
+        },
+        "/applications/{id}/sign": {
+            "post": {
+                "tags": ["applications"],
+                "summary": "SuperAdmin final digital signature",
+                "description": "**approve** → generates SHA-256 digital signature + auto-schedules D+30/60/90 watering tasks | **reject** → Rejected (SuperAdmin)",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [
+                    {"in":"path","name":"id","required":true,"type":"string","format":"uuid"},
+                    {"in":"body","name":"body","required":true,"schema":{"$ref":"#/definitions/SignRequest"}}
+                ],
+                "responses": {"200":{"description":"Signed/rejected"},"400":{"description":"Invalid transition"},"403":{"description":"SuperAdmin only"}}
+            }
+        },
+        "/applications/{id}/watering-tasks": {
+            "get": {
+                "tags": ["watering"],
+                "summary": "Get 30/60/90-day monitoring tasks",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"path","name":"id","required":true,"type":"string","format":"uuid"}],
+                "responses": {"200":{"description":"Watering tasks","schema":{"$ref":"#/definitions/WateringTaskListEnvelope"}}}
+            }
+        },
+        "/watering-tasks/{taskId}/complete": {
+            "post": {
+                "tags": ["watering"],
+                "summary": "Complete watering task + record survival data",
+                "description": "Records alive saplings, water used, cost. survival_rate = (alive/total)×100. When all 3 tasks done → application auto-moves to 'completed'.",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [
+                    {"in":"path","name":"taskId","required":true,"type":"string","format":"uuid"},
+                    {"in":"body","name":"body","required":true,"schema":{"$ref":"#/definitions/CompleteWateringRequest"}}
+                ],
+                "responses": {"200":{"description":"Task completed"},"400":{"description":"Already completed"}}
+            }
+        },
+        "/applications/{id}/inspections": {
+            "post": {
+                "tags": ["inspections"],
+                "summary": "Create inspection record — Auditor only",
+                "description": "Auditor inspects Approved / Watering In Progress / Completed applications. Records findings, recommendations, and a 1–5 rating.",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [
+                    {"in":"path","name":"id","required":true,"type":"string","format":"uuid"},
+                    {"in":"body","name":"body","required":true,"schema":{"$ref":"#/definitions/InspectionRequest"}}
+                ],
+                "responses": {"201":{"description":"Inspection created"},"400":{"description":"Invalid app status"},"403":{"description":"Auditor only"}}
+            },
+            "get": {
+                "tags": ["inspections"],
+                "summary": "Get all inspections for application",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"path","name":"id","required":true,"type":"string","format":"uuid"}],
+                "responses": {"200":{"description":"Inspection list"}}
+            }
+        },
+        "/analytics/districts": {
+            "get": {
+                "tags": ["analytics"],
+                "summary": "District KPI dashboard",
+                "description": "Returns plan vs fact stats, avg survival rate %, and total irrigation cost per district.",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"query","name":"district_id","type":"string","format":"uuid","description":"Optional: filter one district"}],
+                "responses": {"200":{"description":"Stats","schema":{"$ref":"#/definitions/DistrictStatsEnvelope"}}}
+            }
+        },
+        "/audit-logs": {
+            "get": {
+                "tags": ["audit"],
+                "summary": "Full audit trail",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [
+                    {"in":"query","name":"page","type":"integer"},
+                    {"in":"query","name":"limit","type":"integer"},
+                    {"in":"query","name":"user_id","type":"string","format":"uuid"},
+                    {"in":"query","name":"application_id","type":"string","format":"uuid"},
+                    {"in":"query","name":"action","type":"string","enum":["create","update","delete","approve","reject","sign","login","inspect","export"]},
+                    {"in":"query","name":"date_from","type":"string","format":"date"},
+                    {"in":"query","name":"date_to","type":"string","format":"date"}
+                ],
+                "responses": {"200":{"description":"Audit log list"}}
+            }
+        },
+        "/audit-logs/application/{id}": {
+            "get": {
+                "tags": ["audit"],
+                "summary": "Application change history",
+                "security": [{"BearerAuth":[]}],
+                "parameters": [{"in":"path","name":"id","required":true,"type":"string","format":"uuid"}],
+                "responses": {"200":{"description":"Audit logs"}}
+            }
+        }
+    },
+    "definitions": {
+        "LoginRequest":             {"type":"object","required":["username","password"],"properties":{"username":{"type":"string","example":"superadmin"},"password":{"type":"string","example":"superadmin123"}}},
+        "LoginResponseEnvelope":    {"type":"object","properties":{"success":{"type":"boolean"},"data":{"type":"object","properties":{"access_token":{"type":"string"},"refresh_token":{"type":"string"},"expires_at":{"type":"string","format":"date-time"},"user":{"$ref":"#/definitions/User"}}}}},
+        "RefreshRequest":           {"type":"object","required":["refresh_token"],"properties":{"refresh_token":{"type":"string"}}},
+        "ChangePasswordRequest":    {"type":"object","required":["old_password","new_password"],"properties":{"old_password":{"type":"string"},"new_password":{"type":"string","minLength":8}}},
+        "RegisterRequest":          {"type":"object","required":["full_name","username","password","role"],"properties":{"full_name":{"type":"string","example":"Alisher Navoiy"},"username":{"type":"string","example":"alisher_n"},"password":{"type":"string","minLength":8},"role":{"type":"string","enum":["super_admin","admin","district_admin","auditor"]},"district_id":{"type":"string","format":"uuid","description":"Required for district_admin role"}}},
+        "User":                     {"type":"object","properties":{"id":{"type":"string","format":"uuid"},"full_name":{"type":"string"},"username":{"type":"string"},"role":{"type":"string","enum":["super_admin","admin","district_admin","auditor"]},"is_active":{"type":"boolean"},"district_id":{"type":"string","format":"uuid"},"last_login_at":{"type":"string","format":"date-time"},"created_at":{"type":"string","format":"date-time"}}},
+        "UserEnvelope":             {"type":"object","properties":{"success":{"type":"boolean"},"data":{"$ref":"#/definitions/User"}}},
+        "District":                 {"type":"object","properties":{"id":{"type":"string","format":"uuid"},"name":{"type":"string","example":"Chirchiq tumani"},"code":{"type":"string","example":"CHR"},"region":{"type":"string"},"budget":{"type":"number"},"is_active":{"type":"boolean"}}},
+        "CreateApplicationRequest": {"type":"object","required":["district_id","sapling_type_id","section","gps_latitude","gps_longitude","quantity","planting_date","water_method"],"properties":{"district_id":{"type":"string","format":"uuid"},"sapling_type_id":{"type":"string","format":"uuid"},"section":{"type":"string","example":"21-27km"},"gps_latitude":{"type":"number","example":41.468},"gps_longitude":{"type":"number","example":69.593},"gps_address":{"type":"string"},"quantity":{"type":"integer","minimum":1,"example":500},"planting_date":{"type":"string","format":"date-time"},"water_method":{"type":"string","enum":["tanker","drip","stationary","well","mobile_pump","manual"]},"notes":{"type":"string"},"estimated_cost":{"type":"number","example":2500000}}},
+        "UpdateApplicationRequest": {"type":"object","properties":{"section":{"type":"string"},"gps_latitude":{"type":"number"},"gps_longitude":{"type":"number"},"gps_address":{"type":"string"},"quantity":{"type":"integer"},"planting_date":{"type":"string","format":"date-time"},"water_method":{"type":"string","enum":["tanker","drip","stationary","well","mobile_pump","manual"]},"notes":{"type":"string"},"estimated_cost":{"type":"number"}}},
+        "Application":              {"type":"object","properties":{"id":{"type":"string","format":"uuid"},"application_no":{"type":"string","example":"APP-2024-000001"},"district_id":{"type":"string","format":"uuid"},"section":{"type":"string","example":"21-27km"},"quantity":{"type":"integer"},"planting_date":{"type":"string","format":"date-time"},"water_method":{"type":"string","enum":["tanker","drip","stationary","well","mobile_pump","manual"]},"status":{"type":"string","enum":["draft","pending_admin","rejected_admin","pending_superadmin","rejected_superadmin","approved","clarification_needed","watering_in_progress","completed"]},"notes":{"type":"string"},"admin_notes":{"type":"string"},"reject_reason":{"type":"string"},"digital_signature":{"type":"string"},"estimated_cost":{"type":"number"},"actual_cost":{"type":"number"},"approved_at":{"type":"string","format":"date-time"},"district":{"$ref":"#/definitions/District"},"created_at":{"type":"string","format":"date-time"}}},
+        "ApplicationEnvelope":      {"type":"object","properties":{"success":{"type":"boolean"},"data":{"$ref":"#/definitions/Application"}}},
+        "ApplicationListEnvelope":  {"type":"object","properties":{"success":{"type":"boolean"},"data":{"type":"array","items":{"$ref":"#/definitions/Application"}},"meta":{"$ref":"#/definitions/PaginationMeta"}}},
+        "ReviewRequest":            {"type":"object","required":["action"],"properties":{"action":{"type":"string","enum":["approve","reject","clarify"],"description":"approve=forward to SuperAdmin | reject=terminal | clarify=send back"},"admin_notes":{"type":"string","description":"Required when action=clarify"},"reject_reason":{"type":"string","description":"Required when action=reject"}}},
+        "SignRequest":              {"type":"object","required":["action","signature_secret"],"properties":{"action":{"type":"string","enum":["approve","reject"]},"signature_secret":{"type":"string","description":"SuperAdmin personal passphrase for digital signature"},"reject_reason":{"type":"string","description":"Required when action=reject"}}},
+        "WateringTask":             {"type":"object","properties":{"id":{"type":"string","format":"uuid"},"application_id":{"type":"string","format":"uuid"},"day_interval":{"type":"integer","enum":[30,60,90]},"scheduled_date":{"type":"string","format":"date-time"},"is_completed":{"type":"boolean"},"completed_at":{"type":"string","format":"date-time"},"total_saplings":{"type":"integer"},"alive_saplings":{"type":"integer"},"survival_rate":{"type":"number","description":"Auto-calculated: alive/total×100"},"water_used_ltr":{"type":"number"},"watering_cost":{"type":"number"},"notes":{"type":"string"}}},
+        "WateringTaskListEnvelope": {"type":"object","properties":{"success":{"type":"boolean"},"data":{"type":"array","items":{"$ref":"#/definitions/WateringTask"}}}},
+        "CompleteWateringRequest":  {"type":"object","required":["alive_saplings","water_used_ltr"],"properties":{"alive_saplings":{"type":"integer","minimum":0,"example":480},"water_used_ltr":{"type":"number","minimum":0,"example":7500},"watering_cost":{"type":"number","example":350000},"notes":{"type":"string","example":"Ko'chatlar yaxshi o'sdi"}}},
+        "InspectionRequest":        {"type":"object","required":["findings","rating"],"properties":{"survival_rate_ok":{"type":"boolean","example":true},"irrigation_ok":{"type":"boolean","example":true},"findings":{"type":"string","example":"Ko'chatlarning 96% tirik"},"recommendations":{"type":"string"},"rating":{"type":"integer","minimum":1,"maximum":5,"example":5}}},
+        "AuditLog":                 {"type":"object","properties":{"id":{"type":"string","format":"uuid"},"user_id":{"type":"string","format":"uuid"},"application_id":{"type":"string","format":"uuid"},"action":{"type":"string"},"entity_type":{"type":"string"},"description":{"type":"string"},"old_value":{"type":"string"},"new_value":{"type":"string"},"ip_address":{"type":"string"},"created_at":{"type":"string","format":"date-time"}}},
+        "DistrictStats":            {"type":"object","properties":{"district_id":{"type":"string","format":"uuid"},"district_name":{"type":"string","example":"Chirchiq tumani"},"total_apps":{"type":"integer","example":42},"approved_apps":{"type":"integer","example":38},"completed_apps":{"type":"integer","example":20},"total_saplings":{"type":"integer","example":21000},"total_cost":{"type":"number","example":48500000},"avg_survival_rate":{"type":"number","example":94.7}}},
+        "DistrictStatsEnvelope":    {"type":"object","properties":{"success":{"type":"boolean"},"data":{"type":"array","items":{"$ref":"#/definitions/DistrictStats"}}}},
+        "PaginationMeta":           {"type":"object","properties":{"page":{"type":"integer","example":1},"limit":{"type":"integer","example":20},"total":{"type":"integer","example":150},"total_pages":{"type":"integer","example":8}}}
+    }
+}
