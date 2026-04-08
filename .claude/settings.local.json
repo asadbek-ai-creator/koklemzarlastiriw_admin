@@ -3,7 +3,28 @@
     "allow": [
       "Bash(npm create:*)",
       "Bash(npm install:*)",
-      "Bash(npx shadcn@latest init -d)"
+      "Bash(npx shadcn@latest init -d)",
+      "Bash(npx shadcn@latest add button input label card table dialog select badge toast dropdown-menu sidebar separator sheet tabs textarea -y)",
+      "Bash(npx shadcn@latest add button input label card table dialog select badge sonner dropdown-menu sidebar separator sheet tabs textarea -y)",
+      "Bash(rm -f src/App.css src/assets/react.svg public/vite.svg public/icons.svg)",
+      "Bash(rm -rf src/assets)",
+      "Bash(mkdir -p src/app src/shared/api src/shared/types src/shared/hooks src/features/auth src/features/applications src/features/dashboard src/features/users src/pages src/layouts)",
+      "Bash(touch:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(npm ls:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx msw:*)",
+      "Bash(timeout 8 npx vite --host)",
+      "Bash(ls \"C:\\\\Users\\\\User\\\\Desktop\\\\kóklemzarlastıw_project\\\\node_modules\\\\@base-ui\"*)",
+      "Bash(node -e ':*)",
+      "Bash(npx vite:*)",
+      "Bash(powershell -Command \"Get-Content 'src/pages/applications/ApplicationDetailPage.tsx' -Raw\")",
+      "Bash(powershell -Command \"Get-Content 'src/mocks/handlers.ts' -Raw\")",
+      "Bash(powershell -Command \"Get-Content 'src/features/applications/application.service.ts' -Raw\")",
+      "Bash(powershell -Command \"Get-Content 'src/mocks/data.ts' -Raw\")",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(ls tsconfig*.json)"
     ]
   }
 }

@@ -1,73 +1,102 @@
-# React + TypeScript + Vite
+# Ozelenenie — Tree Planting & Irrigation Tracking System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A role-based web application for managing tree planting applications, irrigation monitoring, and government audit compliance.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19** (Vite) + TypeScript
+- **Tailwind CSS v4** + **Shadcn UI**
+- **React Router v7** (createBrowserRouter)
+- **TanStack Query** + Axios (with JWT mutex refresh)
+- **Zustand** (auth state) + **React Hook Form** + Zod v4
+- **Recharts** (dashboard analytics)
+- **Leaflet** / react-leaflet (GPS map)
 
-## React Compiler
+## Quick Start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# 1. Install dependencies
+npm install
 
-## Expanding the ESLint configuration
+# 2. (Optional) Configure environment
+cp .env.example .env
+# Edit .env if you need to point to a different API
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 3. Start dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The dev server starts at `http://localhost:5173`. The Vite proxy forwards `/api/*` requests to the backend at `https://duk-backend.onrender.com`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Environment Variables
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Variable       | Description                                       | Default                            |
+| -------------- | ------------------------------------------------- | ---------------------------------- |
+| `VITE_API_URL` | API origin. Leave empty to use Vite's dev proxy.  | _(empty — proxy to render.com)_    |
+
+For production builds, set `VITE_API_URL` to the backend origin (e.g. `https://duk-backend.onrender.com`).
+
+## Production Build
+
+```bash
+npm run build   # outputs to dist/
+npm run preview # preview the production build locally
 ```
+
+## Role-Based Access
+
+The system has four roles with different permissions:
+
+| Role              | Capabilities                                                                 |
+| ----------------- | ---------------------------------------------------------------------------- |
+| **super_admin**   | Full access. Sign/approve applications (digital signature). View audit logs. |
+| **admin**         | Review applications (approve / reject / request clarification). Manage users.|
+| **district_admin**| Create & submit applications. Complete watering tasks (30/60/90 day).        |
+| **auditor**       | Inspect applications. Record findings, ratings, and recommendations.         |
+
+### Test Credentials
+
+| Role            | Username       | Password         |
+| --------------- | -------------- | ---------------- |
+| Super Admin     | `superadmin`   | `superadmin123`  |
+
+> Additional test accounts can be created via the Users page (admin+ roles).
+
+## Project Structure
+
+```
+src/
+├── app/                    # App root: providers, router config
+│   ├── providers/          # QueryClient, Toaster, AuthGate
+│   └── routes/             # AppRouter, ProtectedRoute (RBAC)
+├── shared/                 # Shared layer
+│   ├── api/                # Axios instance + JWT mutex interceptor
+│   ├── lib/                # Token storage utility
+│   └── types/              # TypeScript interfaces (from swagger.json)
+├── features/               # Domain feature modules
+│   ├── auth/               # Auth service, Zustand store, hooks
+│   ├── applications/       # CRUD service, hooks, components
+│   │   ├── components/     # CreateModal, WateringTasks, Map, AuditHistory
+│   │   ├── hooks/          # useApplications, useWateringTasks, useAuditHistory
+│   │   └── lib/            # Status badge utilities
+│   ├── dashboard/          # Analytics service + hooks
+│   ├── inspections/        # Inspection hooks + modal + list
+│   └── users/              # User service
+├── pages/                  # Route-level page components
+│   ├── auth/               # LoginPage, UnauthorizedPage
+│   ├── dashboard/          # DashboardPage (KPI cards + charts)
+│   └── applications/       # List, Detail (tabbed: details/watering/inspections/map/audit)
+├── layouts/                # MainLayout with role-filtered sidebar
+├── components/ui/          # Shadcn UI primitives
+├── hooks/                  # Shadcn shared hooks
+└── lib/                    # Shadcn utils
+```
+
+## API Configuration
+
+The API base path is `/api/v1`. In development, Vite's proxy handles CORS by forwarding requests to the backend. In production, either:
+
+- Deploy the frontend behind the same origin as the backend, or
+- Set `VITE_API_URL` to the backend origin and ensure CORS is configured.
+
+Swagger definition: see `swagger.json` in the project root.
