@@ -11,12 +11,16 @@ import {
   districtStats,
   districts,
   saplingTypes,
+  applicationPhotos,
+  wateringPhotos,
 } from './data';
 import type {
   LoginRequest,
   RefreshRequest,
   RegisterRequest,
   CreateApplicationRequest,
+  CreateDistrictReq,
+  UpdateDistrictReq,
   UpdateApplicationStatusRequest,
   ReviewRequest,
   SignRequest,
@@ -24,10 +28,13 @@ import type {
   InspectionRequest,
   ApplicationStatus,
   Application,
+  ApplicationPhoto,
+  District,
   Inspection,
   User,
   UserRole,
   WateringTask,
+  WateringPhoto,
 } from '@/shared/types/api.types';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -179,7 +186,11 @@ const applicationHandlers = [
         { status: 404 },
       );
     }
-    return HttpResponse.json({ success: true, data: app });
+    const withPhotos: Application = {
+      ...app,
+      photos: applicationPhotos.filter((p) => p.application_id === app.id),
+    };
+    return HttpResponse.json({ success: true, data: withPhotos });
   }),
 
   http.post(`${BASE}/applications`, async ({ request }) => {
@@ -191,6 +202,7 @@ const applicationHandlers = [
       id: crypto.randomUUID(),
       application_no: `APP-${new Date().getFullYear()}-${String(applications.length + 1).padStart(6, '0')}`,
       district_id: body.district_id,
+      sapling_type_id: body.sapling_type_id,
       section: body.section,
       quantity: body.quantity,
       planting_date: body.planting_date,
@@ -538,7 +550,12 @@ function applyTransition(
 const wateringHandlers = [
   http.get(`${BASE}/applications/:id/watering-tasks`, async ({ params }) => {
     await delay(200);
-    const tasks = wateringTasks.filter((t) => t.application_id === params.id);
+    const tasks = wateringTasks
+      .filter((t) => t.application_id === params.id)
+      .map<WateringTask>((task) => ({
+        ...task,
+        photos: wateringPhotos.filter((p) => p.watering_task_id === task.id),
+      }));
     return HttpResponse.json({ success: true, data: tasks });
   }),
 
@@ -790,12 +807,195 @@ const userHandlers = [
   }),
 ];
 
+// ── Photo handlers ──────────────────────────────────────────
+//
+// Mock POST endpoints accept `multipart/form-data` with a
+// `photos` field (one or more images). For each uploaded file
+// we generate a stable seeded picsum URL — there is no real
+// blob storage in MSW. Returns the freshly created photo rows.
+
+function pickUploaderId(request: Request): string {
+  return getUserFromAuth(request)?.id ?? users.district.id;
+}
+
+function makePhotoUrl(seed: string): string {
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/600/600`;
+}
+
+const photoHandlers = [
+  http.post(`${BASE}/applications/:id/photos`, async ({ params, request }) => {
+    await delay(400);
+    const app = applications.find((a) => a.id === params.id);
+    if (!app) {
+      return HttpResponse.json(
+        { success: false, message: 'Application not found' },
+        { status: 404 },
+      );
+    }
+
+    const form = await request.formData();
+    const files = form.getAll('photos').filter((v): v is File => v instanceof File);
+    if (files.length === 0) {
+      return HttpResponse.json(
+        { success: false, message: 'No photos provided' },
+        { status: 400 },
+      );
+    }
+
+    const uploadedBy = pickUploaderId(request);
+    const uploader = userList.find((u) => u.id === uploadedBy) ?? users.district;
+    const now = new Date().toISOString();
+    const created: ApplicationPhoto[] = files.map((file, idx) => {
+      const photo: ApplicationPhoto = {
+        id: crypto.randomUUID(),
+        application_id: app.id,
+        file_name: file.name || `photo-${idx + 1}.jpg`,
+        file_path: makePhotoUrl(`${app.id}-${Date.now()}-${idx}`),
+        file_size: file.size ?? 0,
+        mime_type: file.type || 'image/jpeg',
+        photo_type: 'initial',
+        uploaded_by_id: uploadedBy,
+        uploaded_by: uploader,
+        created_at: now,
+        updated_at: now,
+      };
+      applicationPhotos.push(photo);
+      return photo;
+    });
+
+    return HttpResponse.json({ success: true, data: created }, { status: 201 });
+  }),
+
+  http.post(`${BASE}/watering-tasks/:taskId/photos`, async ({ params, request }) => {
+    await delay(400);
+    const task = wateringTasks.find((t) => t.id === params.taskId);
+    if (!task) {
+      return HttpResponse.json(
+        { success: false, message: 'Watering task not found' },
+        { status: 404 },
+      );
+    }
+
+    const form = await request.formData();
+    const files = form.getAll('photos').filter((v): v is File => v instanceof File);
+    if (files.length === 0) {
+      return HttpResponse.json(
+        { success: false, message: 'No photos provided' },
+        { status: 400 },
+      );
+    }
+
+    const uploadedBy = pickUploaderId(request);
+    const uploader = userList.find((u) => u.id === uploadedBy) ?? users.district;
+    const now = new Date().toISOString();
+    const created: WateringPhoto[] = files.map((file, idx) => {
+      const photo: WateringPhoto = {
+        id: crypto.randomUUID(),
+        watering_task_id: task.id,
+        file_name: file.name || `photo-${idx + 1}.jpg`,
+        file_path: makePhotoUrl(`${task.id}-${Date.now()}-${idx}`),
+        file_size: file.size ?? 0,
+        mime_type: file.type || 'image/jpeg',
+        uploaded_by_id: uploadedBy,
+        uploaded_by: uploader,
+        created_at: now,
+        updated_at: now,
+      };
+      wateringPhotos.push(photo);
+      return photo;
+    });
+
+    return HttpResponse.json({ success: true, data: created }, { status: 201 });
+  }),
+];
+
 // ── Lookup handlers (districts, sapling types) ─────────────
 
 const lookupHandlers = [
   http.get(`${BASE}/districts`, async () => {
     await delay(200);
     return HttpResponse.json({ success: true, data: districts });
+  }),
+
+  http.post(`${BASE}/districts`, async ({ request }) => {
+    await delay(300);
+    const actor = getUserFromAuth(request);
+    if (!actor || actor.role !== 'super_admin') {
+      return HttpResponse.json(
+        { success: false, message: 'Forbidden' },
+        { status: 403 },
+      );
+    }
+    const body = (await request.json()) as CreateDistrictReq;
+    if (!body.name || !body.code) {
+      return HttpResponse.json(
+        { success: false, message: 'name and code are required' },
+        { status: 400 },
+      );
+    }
+    if (districts.some((d) => d.code === body.code)) {
+      return HttpResponse.json(
+        { success: false, message: `Code '${body.code}' already exists` },
+        { status: 409 },
+      );
+    }
+    const newDistrict: District = {
+      id: crypto.randomUUID(),
+      name: body.name,
+      code: body.code,
+      region: body.region ?? '',
+      budget: body.budget ?? 0,
+      is_active: body.is_active ?? true,
+    };
+    districts.push(newDistrict);
+    return HttpResponse.json({ success: true, data: newDistrict }, { status: 201 });
+  }),
+
+  http.put(`${BASE}/districts/:id`, async ({ request, params }) => {
+    await delay(300);
+    const actor = getUserFromAuth(request);
+    if (!actor || actor.role !== 'super_admin') {
+      return HttpResponse.json(
+        { success: false, message: 'Forbidden' },
+        { status: 403 },
+      );
+    }
+    const idx = districts.findIndex((d) => d.id === params.id);
+    if (idx === -1) {
+      return HttpResponse.json(
+        { success: false, message: 'District not found' },
+        { status: 404 },
+      );
+    }
+    const body = (await request.json()) as UpdateDistrictReq;
+    const updated = { ...districts[idx] };
+    if (body.name !== undefined) updated.name = body.name;
+    if (body.code !== undefined) updated.code = body.code;
+    if (body.region !== undefined) updated.region = body.region;
+    if (body.budget !== undefined) updated.budget = body.budget;
+    if (body.is_active !== undefined) updated.is_active = body.is_active;
+    districts[idx] = updated;
+    return HttpResponse.json({ success: true, data: updated });
+  }),
+
+  http.delete(`${BASE}/districts/:id`, async ({ request, params }) => {
+    await delay(300);
+    const actor = getUserFromAuth(request);
+    if (!actor || actor.role !== 'super_admin') {
+      return HttpResponse.json(
+        { success: false, message: 'Forbidden' },
+        { status: 403 },
+      );
+    }
+    const idx = districts.findIndex((d) => d.id === params.id);
+    if (idx === -1) {
+      return HttpResponse.json(
+        { success: false, message: 'District not found' },
+        { status: 404 },
+      );
+    }
+    districts.splice(idx, 1);
+    return HttpResponse.json({ success: true, data: null });
   }),
 
   http.get(`${BASE}/sapling-types`, async () => {
@@ -814,5 +1014,6 @@ export const handlers = [
   ...analyticsHandlers,
   ...auditHandlers,
   ...userHandlers,
+  ...photoHandlers,
   ...lookupHandlers,
 ];

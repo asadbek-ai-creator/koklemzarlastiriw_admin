@@ -6,8 +6,10 @@ import {
   ChevronRight,
   Loader2,
   UserX,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,17 +42,11 @@ import {
 
 import { useUsers, useDeactivateUser } from '@/features/users/hooks/useUsers';
 import { CreateUserModal } from '@/features/users/components/CreateUserModal';
+import { EditUserModal } from '@/features/users/components/EditUserModal';
 import { useAuthStore } from '@/features/auth/store/auth.store';
 import type { User, UserRole } from '@/shared/types/api.types';
 
 const PAGE_SIZE = 20;
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  super_admin: 'Super Admin',
-  admin: 'Admin',
-  district_admin: 'District Admin',
-  auditor: 'Auditor',
-};
 
 const ALL_ROLES: UserRole[] = [
   'super_admin',
@@ -60,11 +56,13 @@ const ALL_ROLES: UserRole[] = [
 ];
 
 export default function UsersPage() {
+  const { t } = useTranslation();
   const actor = useAuthStore((s) => s.user);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
   const [createOpen, setCreateOpen] = useState(false);
+  const [toEdit, setToEdit] = useState<User | null>(null);
   const [toDeactivate, setToDeactivate] = useState<User | null>(null);
 
   const params = {
@@ -80,6 +78,8 @@ export default function UsersPage() {
 
   const deactivateMutation = useDeactivateUser();
   const canDeactivate = actor?.role === 'super_admin';
+  const canEdit = actor?.role === 'super_admin' || actor?.role === 'admin';
+  const showActions = canEdit || canDeactivate;
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -95,13 +95,13 @@ export default function UsersPage() {
     if (!toDeactivate) return;
     deactivateMutation.mutate(toDeactivate.id, {
       onSuccess: () => {
-        toast.success(`"${toDeactivate.username}" deactivated`);
+        toast.success(t('toast.deactivated', { username: toDeactivate.username }));
         setToDeactivate(null);
       },
       onError: (err: unknown) => {
         const message =
           (err as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message ?? 'Failed to deactivate user';
+            ?.data?.message ?? t('toast.deactivateFailed');
         toast.error(message);
       },
     });
@@ -112,14 +112,14 @@ export default function UsersPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Users</h1>
+          <h1 className="text-2xl font-bold">{t('users.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            Manage user accounts and permissions
+            {t('users.subtitle')}
           </p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add User
+          {t('users.addUser')}
         </Button>
       </div>
 
@@ -128,7 +128,7 @@ export default function UsersPage() {
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by name or username..."
+            placeholder={t('users.searchPlaceholder')}
             className="pl-9"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
@@ -136,13 +136,13 @@ export default function UsersPage() {
         </div>
         <Select value={roleFilter} onValueChange={handleRoleChange}>
           <SelectTrigger className="w-52">
-            <SelectValue placeholder="Filter by role" />
+            <SelectValue placeholder={t('users.filterByRole')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
+            <SelectItem value="all">{t('users.allRoles')}</SelectItem>
             {ALL_ROLES.map((r) => (
               <SelectItem key={r} value={r}>
-                {ROLE_LABELS[r]}
+                {t(`role.${r}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -157,14 +157,14 @@ export default function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Full Name</TableHead>
-              <TableHead>Username</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Login</TableHead>
-              <TableHead>Created</TableHead>
-              {canDeactivate && (
-                <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t('users.fullName')}</TableHead>
+              <TableHead>{t('users.username')}</TableHead>
+              <TableHead>{t('users.role')}</TableHead>
+              <TableHead>{t('users.status')}</TableHead>
+              <TableHead>{t('users.lastLogin')}</TableHead>
+              <TableHead>{t('users.created')}</TableHead>
+              {showActions && (
+                <TableHead className="text-right">{t('users.actions')}</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -172,7 +172,7 @@ export default function UsersPage() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: canDeactivate ? 7 : 6 }).map(
+                  {Array.from({ length: showActions ? 7 : 6 }).map(
                     (_, j) => (
                       <TableCell key={j}>
                         <div className="h-4 w-24 animate-pulse rounded bg-muted" />
@@ -184,10 +184,10 @@ export default function UsersPage() {
             ) : users.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={canDeactivate ? 7 : 6}
+                  colSpan={showActions ? 7 : 6}
                   className="h-32 text-center text-muted-foreground"
                 >
-                  No users found.
+                  {t('users.noUsers')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -198,13 +198,13 @@ export default function UsersPage() {
                     {u.username}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{ROLE_LABELS[u.role]}</Badge>
+                    <Badge variant="secondary">{t(`role.${u.role}`)}</Badge>
                   </TableCell>
                   <TableCell>
                     {u.is_active ? (
-                      <Badge variant="default">Active</Badge>
+                      <Badge variant="default">{t('common.active')}</Badge>
                     ) : (
-                      <Badge variant="destructive">Inactive</Badge>
+                      <Badge variant="destructive">{t('common.inactive')}</Badge>
                     )}
                   </TableCell>
                   <TableCell>
@@ -215,17 +215,31 @@ export default function UsersPage() {
                   <TableCell>
                     {new Date(u.created_at).toLocaleDateString()}
                   </TableCell>
-                  {canDeactivate && (
+                  {showActions && (
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={!u.is_active || u.id === actor?.id}
-                        onClick={() => setToDeactivate(u)}
-                      >
-                        <UserX className="mr-1.5 h-4 w-4" />
-                        Deactivate
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setToEdit(u)}
+                          >
+                            <Pencil className="mr-1.5 h-4 w-4" />
+                            {t('users.edit')}
+                          </Button>
+                        )}
+                        {canDeactivate && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={!u.is_active || u.id === actor?.id}
+                            onClick={() => setToDeactivate(u)}
+                          >
+                            <UserX className="mr-1.5 h-4 w-4" />
+                            {t('users.deactivate')}
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
@@ -239,7 +253,7 @@ export default function UsersPage() {
       {meta && meta.total_pages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Page {meta.page} of {meta.total_pages} &middot; {meta.total} total
+            {t('common.page', { current: meta.page, total: meta.total_pages })} &middot; {t('common.totalItems', { count: meta.total })}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -248,7 +262,7 @@ export default function UsersPage() {
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
-              <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+              <ChevronLeft className="mr-1 h-4 w-4" /> {t('common.previous')}
             </Button>
             <Button
               variant="outline"
@@ -256,7 +270,7 @@ export default function UsersPage() {
               disabled={page >= meta.total_pages}
               onClick={() => setPage((p) => p + 1)}
             >
-              Next <ChevronRight className="ml-1 h-4 w-4" />
+              {t('common.next')} <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -265,6 +279,15 @@ export default function UsersPage() {
       {/* ── Create user modal ── */}
       <CreateUserModal open={createOpen} onOpenChange={setCreateOpen} />
 
+      {/* ── Edit user modal ── */}
+      {toEdit && (
+        <EditUserModal
+          open={!!toEdit}
+          onOpenChange={(next) => !next && setToEdit(null)}
+          user={toEdit}
+        />
+      )}
+
       {/* ── Deactivate confirmation ── */}
       <AlertDialog
         open={!!toDeactivate}
@@ -272,24 +295,18 @@ export default function UsersPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate user?</AlertDialogTitle>
+            <AlertDialogTitle>{t('users.deactivateTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {toDeactivate && (
-                <>
-                  This will disable{' '}
-                  <span className="font-semibold">
-                    {toDeactivate.full_name}
-                  </span>{' '}
-                  ({toDeactivate.username}). They will no longer be able to
-                  sign in. This action can be reverted by re-activating the
-                  account.
-                </>
-              )}
+              {toDeactivate &&
+                t('users.deactivateDescription', {
+                  name: toDeactivate.full_name,
+                  username: toDeactivate.username,
+                })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setToDeactivate(null)}>
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
@@ -299,7 +316,7 @@ export default function UsersPage() {
               {deactivateMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Deactivate
+              {t('users.deactivate')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { ProtectedRoute } from './ProtectedRoute';
-
 // ── Lazy-loaded pages ───────────────────────────────────────
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/auth/UnauthorizedPage'));
@@ -11,6 +10,9 @@ const ApplicationsPage = lazy(() => import('@/pages/applications/ApplicationsPag
 const ApplicationDetailPage = lazy(() => import('@/pages/applications/ApplicationDetailPage'));
 const DistrictPage = lazy(() => import('@/pages/district/DistrictPage'));
 const UsersPage = lazy(() => import('@/pages/users/UsersPage'));
+const AuditLogsPage = lazy(() => import('@/pages/audit/AuditLogsPage'));
+const DistrictsPage = lazy(() => import('@/pages/districts/DistrictsPage'));
+const InspectionsPage = lazy(() => import('@/pages/inspections/InspectionsPage'));
 
 // ── Fallback spinner ────────────────────────────────────────
 function PageLoader() {
@@ -108,6 +110,47 @@ const router = createBrowserRouter([
               },
             ],
           },
+
+          // ── Role-guarded subtree (super_admin + admin + auditor)
+          {
+            element: (
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'auditor']} />
+            ),
+            children: [
+              {
+                path: '/inspections',
+                element: (
+                  <Suspense fallback={<PageLoader />}>
+                    <InspectionsPage />
+                  </Suspense>
+                ),
+              },
+            ],
+          },
+
+          // ── Role-guarded subtree (super_admin only) ─────────
+          {
+            element: <ProtectedRoute allowedRoles={['super_admin']} />,
+            children: [
+              {
+                path: '/districts',
+                element: (
+                  <Suspense fallback={<PageLoader />}>
+                    <DistrictsPage />
+                  </Suspense>
+                ),
+              },
+              {
+                path: '/audit-logs',
+                element: (
+                  <Suspense fallback={<PageLoader />}>
+                    <AuditLogsPage />
+                  </Suspense>
+                ),
+              },
+            ],
+          },
+          
         ],
       },
     ],

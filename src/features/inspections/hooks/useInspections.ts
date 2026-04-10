@@ -1,8 +1,19 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import { applicationService } from '@/features/applications/application.service';
-import type { InspectionRequest } from '@/shared/types/api.types';
+import { inspectionService } from '@/features/inspections/inspection.service';
+import type {
+  InspectionRequest,
+  InspectionListParams,
+} from '@/shared/types/api.types';
 
 export const inspectionKeys = {
+  all: ['inspections'] as const,
+  global: (params: InspectionListParams) => ['inspections', 'global', params] as const,
   list: (appId: string) => ['inspections', appId] as const,
 };
 
@@ -12,6 +23,14 @@ export function useInspections(applicationId: string) {
     queryFn: () =>
       applicationService.getInspections(applicationId).then((r) => r.data),
     enabled: !!applicationId,
+  });
+}
+
+export function useGlobalInspections(params: InspectionListParams) {
+  return useQuery({
+    queryKey: inspectionKeys.global(params),
+    queryFn: () => inspectionService.list(params).then((r) => r.data),
+    placeholderData: keepPreviousData,
   });
 }
 

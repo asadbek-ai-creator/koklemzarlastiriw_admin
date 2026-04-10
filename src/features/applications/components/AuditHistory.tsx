@@ -1,4 +1,5 @@
 import { ScrollText, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function AuditHistory({ applicationId }: Props) {
+  const { t } = useTranslation();
   const { data, isLoading } = useApplicationAuditLogs(applicationId);
   const logs = data?.data ?? [];
 
@@ -35,25 +37,25 @@ export function AuditHistory({ applicationId }: Props) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ScrollText className="h-5 w-5" />
-          Audit History
+          {t('auditHistory.title')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {logs.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No audit records found for this application.
+            {t('auditHistory.noRecords')}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Old Value</TableHead>
-                  <TableHead>New Value</TableHead>
-                  <TableHead>IP</TableHead>
+                  <TableHead>{t('auditHistory.date')}</TableHead>
+                  <TableHead>{t('auditHistory.action')}</TableHead>
+                  <TableHead>{t('auditHistory.description')}</TableHead>
+                  <TableHead>{t('auditHistory.oldValue')}</TableHead>
+                  <TableHead>{t('auditHistory.newValue')}</TableHead>
+                  <TableHead>{t('auditHistory.ip')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -63,8 +65,8 @@ export function AuditHistory({ applicationId }: Props) {
                       {new Date(log.created_at).toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="capitalize">
-                        {log.action}
+                      <Badge variant="secondary">
+                        {t(`auditAction.${log.action}`)}
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-xs truncate text-sm">

@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 import {
   Dialog,
@@ -27,12 +27,8 @@ import {
 
 import { useCreateUser } from '@/features/users/hooks/useUsers';
 import { useAuthStore } from '@/features/auth/store/auth.store';
-import { api } from '@/shared/api/axios.instance';
-import type {
-  ApiEnvelope,
-  District,
-  UserRole,
-} from '@/shared/types/api.types';
+import { useDistricts } from '@/shared/hooks/useDistricts';
+import type { UserRole } from '@/shared/types/api.types';
 
 // ── Role options (filtered by actor's role at render time) ──
 
@@ -83,18 +79,13 @@ interface Props {
 }
 
 export function CreateUserModal({ open, onOpenChange }: Props) {
+  const { t } = useTranslation();
   const actor = useAuthStore((s) => s.user);
   const createMutation = useCreateUser();
 
   const allowedRoles: UserRole[] = actor ? CREATABLE_BY[actor.role] : [];
 
-  const { data: districts = [] } = useQuery({
-    queryKey: ['districts'],
-    queryFn: () =>
-      api
-        .get<ApiEnvelope<District[]>>('/districts')
-        .then((r) => r.data.data),
-  });
+  const { districts } = useDistricts();
 
   const {
     register,
@@ -139,13 +130,13 @@ export function CreateUserModal({ open, onOpenChange }: Props) {
           ? { district_id: data.district_id }
           : {}),
       });
-      toast.success(`User "${data.username}" created`);
+      toast.success(t('toast.userCreated', { username: data.username }));
       reset();
       onOpenChange(false);
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? 'Failed to create user';
+          ?.data?.message ?? t('toast.userCreateFailed');
       toast.error(message);
     }
   };
@@ -159,17 +150,16 @@ export function CreateUserModal({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add User</DialogTitle>
+          <DialogTitle>{t('createUser.title')}</DialogTitle>
           <DialogDescription>
-            Create a new account. District Admin accounts must be linked to
-            a district.
+            {t('createUser.description')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Full name */}
           <div className="space-y-1.5">
-            <Label htmlFor="full_name">Full Name</Label>
+            <Label htmlFor="full_name">{t('createUser.fullName')}</Label>
             <Input
               id="full_name"
               placeholder="e.g. Bobur Aliyev"
@@ -185,7 +175,7 @@ export function CreateUserModal({ open, onOpenChange }: Props) {
           {/* Username & Password */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">{t('createUser.username')}</Label>
               <Input
                 id="username"
                 autoComplete="off"
@@ -199,7 +189,7 @@ export function CreateUserModal({ open, onOpenChange }: Props) {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('createUser.password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -216,7 +206,7 @@ export function CreateUserModal({ open, onOpenChange }: Props) {
 
           {/* Role */}
           <div className="space-y-1.5">
-            <Label>Role</Label>
+            <Label>{t('createUser.role')}</Label>
             <Select
               modal={false}
               value={selectedRole}
@@ -225,16 +215,16 @@ export function CreateUserModal({ open, onOpenChange }: Props) {
               }
               items={allowedRoles.map((r) => ({
                 value: r,
-                label: ROLE_LABELS[r],
+                label: t(`role.${r}`),
               }))}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select role" />
+                <SelectValue placeholder={t('createUser.selectRole')} />
               </SelectTrigger>
               <SelectContent disablePortal>
                 {allowedRoles.map((r) => (
                   <SelectItem key={r} value={r}>
-                    {ROLE_LABELS[r]}
+                    {t(`role.${r}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -247,7 +237,7 @@ export function CreateUserModal({ open, onOpenChange }: Props) {
           {/* District — shown only when role === 'district_admin' */}
           {selectedRole === 'district_admin' && (
             <div className="space-y-1.5">
-              <Label>District</Label>
+              <Label>{t('createUser.district')}</Label>
               <Select
                 modal={false}
                 onValueChange={(v) =>
@@ -259,7 +249,7 @@ export function CreateUserModal({ open, onOpenChange }: Props) {
                 }))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select district" />
+                  <SelectValue placeholder={t('createUser.selectDistrict')} />
                 </SelectTrigger>
                 <SelectContent disablePortal>
                   {districts.map((d) => (
@@ -283,13 +273,13 @@ export function CreateUserModal({ open, onOpenChange }: Props) {
               variant="outline"
               onClick={() => handleOpenChange(false)}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Create User
+              {t('createUser.createButton')}
             </Button>
           </DialogFooter>
         </form>

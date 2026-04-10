@@ -1,10 +1,12 @@
 import type {
   User,
   Application,
+  ApplicationPhoto,
   DistrictStats,
   District,
   SaplingType,
   WateringTask,
+  WateringPhoto,
   Inspection,
   AuditLog,
 } from '@/shared/types/api.types';
@@ -22,13 +24,13 @@ export const districts: District[] = [
 // ── Sapling Types ──────────────────────────────────────────
 
 export const saplingTypes: SaplingType[] = [
-  { id: 'b1000000-0000-4000-a000-000000000001', name: 'Chinor (Platanus)',        category: 'Dekorativ',   is_active: true },
-  { id: 'b1000000-0000-4000-a000-000000000002', name: 'Terak (Populus)',          category: 'Tezpishiq',   is_active: true },
-  { id: 'b1000000-0000-4000-a000-000000000003', name: 'Tut (Morus)',             category: 'Mevali',      is_active: true },
-  { id: 'b1000000-0000-4000-a000-000000000004', name: 'Archa (Juniperus)',       category: 'Doimiy yashil', is_active: true },
-  { id: 'b1000000-0000-4000-a000-000000000005', name: "Olma (Malus)",            category: 'Mevali',      is_active: true },
-  { id: 'b1000000-0000-4000-a000-000000000006', name: "O'rik (Prunus)",          category: 'Mevali',      is_active: true },
-  { id: 'b1000000-0000-4000-a000-000000000007', name: 'Zarang (Fraxinus)',       category: 'Dekorativ',   is_active: true },
+  { id: 'b1000000-0000-4000-a000-000000000001', name: 'Chinor (Platanus)',  scientific_name: 'Platanus orientalis', water_require_ltr: 25, growth_days: 90, is_active: true },
+  { id: 'b1000000-0000-4000-a000-000000000002', name: 'Terak (Populus)',    scientific_name: 'Populus alba',        water_require_ltr: 30, growth_days: 90, is_active: true },
+  { id: 'b1000000-0000-4000-a000-000000000003', name: 'Tut (Morus)',        scientific_name: 'Morus alba',          water_require_ltr: 18, growth_days: 90, is_active: true },
+  { id: 'b1000000-0000-4000-a000-000000000004', name: 'Archa (Juniperus)',  scientific_name: 'Juniperus seravschanica', water_require_ltr: 12, growth_days: 120, is_active: true },
+  { id: 'b1000000-0000-4000-a000-000000000005', name: "Olma (Malus)",       scientific_name: 'Malus domestica',     water_require_ltr: 20, growth_days: 90, is_active: true },
+  { id: 'b1000000-0000-4000-a000-000000000006', name: "O'rik (Prunus)",     scientific_name: 'Prunus armeniaca',    water_require_ltr: 22, growth_days: 90, is_active: true },
+  { id: 'b1000000-0000-4000-a000-000000000007', name: 'Zarang (Fraxinus)',  scientific_name: 'Fraxinus excelsior',  water_require_ltr: 28, growth_days: 90, is_active: true },
 ];
 
 // ── Users (one per role) ────────────────────────────────────
@@ -93,6 +95,7 @@ export const applications: Application[] = [
     id: 'a0000000-0000-4000-a000-000000000001',
     application_no: 'APP-2026-000001',
     district_id: districts[0].id,
+    sapling_type_id: saplingTypes[0].id,
     section: '21-27km',
     quantity: 500,
     planting_date: '2026-03-15T00:00:00Z',
@@ -112,6 +115,7 @@ export const applications: Application[] = [
     id: 'a0000000-0000-4000-a000-000000000002',
     application_no: 'APP-2026-000002',
     district_id: districts[1].id,
+    sapling_type_id: saplingTypes[1].id,
     section: '5-12km',
     quantity: 300,
     planting_date: '2026-03-20T00:00:00Z',
@@ -131,6 +135,7 @@ export const applications: Application[] = [
     id: 'a0000000-0000-4000-a000-000000000003',
     application_no: 'APP-2026-000003',
     district_id: districts[2].id,
+    sapling_type_id: saplingTypes[2].id,
     section: '1-4km',
     quantity: 200,
     planting_date: '2026-04-01T00:00:00Z',
@@ -150,6 +155,7 @@ export const applications: Application[] = [
     id: 'a0000000-0000-4000-a000-000000000004',
     application_no: 'APP-2026-000004',
     district_id: districts[0].id,
+    sapling_type_id: saplingTypes[3].id,
     section: '30-35km',
     quantity: 750,
     planting_date: '2026-03-25T00:00:00Z',
@@ -169,6 +175,7 @@ export const applications: Application[] = [
     id: 'a0000000-0000-4000-a000-000000000005',
     application_no: 'APP-2026-000005',
     district_id: districts[3].id,
+    sapling_type_id: saplingTypes[4].id,
     section: '8-15km',
     quantity: 400,
     planting_date: '2026-03-28T00:00:00Z',
@@ -188,6 +195,7 @@ export const applications: Application[] = [
     id: 'a0000000-0000-4000-a000-000000000006',
     application_no: 'APP-2026-000006',
     district_id: districts[4].id,
+    sapling_type_id: saplingTypes[5].id,
     section: '2-6km',
     quantity: 150,
     planting_date: '2026-04-05T00:00:00Z',
@@ -207,6 +215,7 @@ export const applications: Application[] = [
     id: 'a0000000-0000-4000-a000-000000000007',
     application_no: 'APP-2026-000007',
     district_id: districts[2].id,
+    sapling_type_id: saplingTypes[6].id,
     section: '40-44km',
     quantity: 250,
     planting_date: '2026-04-10T00:00:00Z',
@@ -230,6 +239,90 @@ export function addApplication(app: Application) {
   applications.unshift(app);
   return app;
 }
+
+// ── Photos ──────────────────────────────────────────────────
+//
+// Mutable storage so the POST handlers can append uploaded
+// photos. Real backend stores binary blobs; here we use stable
+// public placeholder URLs (picsum.photos) so the gallery renders
+// realistic-looking images without needing a file server.
+
+function makeAppPhoto(
+  id: string,
+  applicationId: string,
+  fileName: string,
+  createdAt: string,
+): ApplicationPhoto {
+  return {
+    id,
+    application_id: applicationId,
+    file_name: fileName,
+    file_path: `https://picsum.photos/seed/${id}/600/600`,
+    file_size: 123456,
+    mime_type: 'image/jpeg',
+    photo_type: 'initial',
+    uploaded_by_id: users.district.id,
+    uploaded_by: users.district,
+    created_at: createdAt,
+    updated_at: createdAt,
+  };
+}
+
+function makeWateringPhoto(
+  id: string,
+  taskId: string,
+  fileName: string,
+  createdAt: string,
+): WateringPhoto {
+  return {
+    id,
+    watering_task_id: taskId,
+    file_name: fileName,
+    file_path: `https://picsum.photos/seed/${id}/600/600`,
+    file_size: 123456,
+    mime_type: 'image/jpeg',
+    uploaded_by_id: users.district.id,
+    uploaded_by: users.district,
+    created_at: createdAt,
+    updated_at: createdAt,
+  };
+}
+
+export const applicationPhotos: ApplicationPhoto[] = [
+  makeAppPhoto(
+    'p0000000-0000-4000-a000-000000000001',
+    'a0000000-0000-4000-a000-000000000001',
+    'site-entry.jpg',
+    '2026-03-01T08:05:00Z',
+  ),
+  makeAppPhoto(
+    'p0000000-0000-4000-a000-000000000002',
+    'a0000000-0000-4000-a000-000000000001',
+    'soil-condition.jpg',
+    '2026-03-01T08:06:00Z',
+  ),
+  makeAppPhoto(
+    'p0000000-0000-4000-a000-000000000003',
+    'a0000000-0000-4000-a000-000000000004',
+    'planting-area.jpg',
+    '2026-03-08T11:10:00Z',
+  ),
+];
+
+export const wateringPhotos: WateringPhoto[] = [
+  makeWateringPhoto(
+    'q0000000-0000-4000-a000-000000000001',
+    'f0000000-0000-4000-a000-000000000001',
+    'd30-healthy.jpg',
+    '2026-04-17T14:05:00Z',
+  ),
+  makeWateringPhoto(
+    'q0000000-0000-4000-a000-000000000002',
+    'f0000000-0000-4000-a000-000000000004',
+    'd30-saplings.jpg',
+    '2026-04-19T10:05:00Z',
+  ),
+];
 
 // ── Watering Tasks ──────────────────────────────────────────
 

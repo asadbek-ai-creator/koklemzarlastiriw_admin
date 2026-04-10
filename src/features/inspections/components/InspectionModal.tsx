@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, Star } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 import {
   Dialog,
@@ -32,6 +33,7 @@ interface Props {
 }
 
 export function InspectionModal({ open, onOpenChange, applicationId }: Props) {
+  const { t } = useTranslation();
   const mutation = useCreateInspection(applicationId);
 
   const {
@@ -58,11 +60,11 @@ export function InspectionModal({ open, onOpenChange, applicationId }: Props) {
     const data = values as unknown as InspectionRequest;
     try {
       await mutation.mutateAsync(data);
-      toast.success('Inspection recorded');
+      toast.success(t('toast.inspectionRecorded'));
       reset();
       onOpenChange(false);
     } catch {
-      toast.error('Failed to create inspection');
+      toast.error(t('toast.inspectionFailed'));
     }
   };
 
@@ -70,13 +72,12 @@ export function InspectionModal({ open, onOpenChange, applicationId }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add Inspection</DialogTitle>
+          <DialogTitle>{t('inspections.modalTitle')}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Rating — star selector */}
           <div className="space-y-1.5">
-            <Label>Rating</Label>
+            <Label>{t('inspections.rating')}</Label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -100,7 +101,6 @@ export function InspectionModal({ open, onOpenChange, applicationId }: Props) {
             )}
           </div>
 
-          {/* Checkboxes */}
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -108,7 +108,7 @@ export function InspectionModal({ open, onOpenChange, applicationId }: Props) {
                 className="h-4 w-4 rounded border-input"
                 {...register('survival_rate_ok')}
               />
-              Survival Rate OK
+              {t('inspections.survivalRateOk')}
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -116,17 +116,16 @@ export function InspectionModal({ open, onOpenChange, applicationId }: Props) {
                 className="h-4 w-4 rounded border-input"
                 {...register('irrigation_ok')}
               />
-              Irrigation OK
+              {t('inspections.irrigationOkLabel')}
             </label>
           </div>
 
-          {/* Findings */}
           <div className="space-y-1.5">
-            <Label htmlFor="findings">Findings</Label>
+            <Label htmlFor="findings">{t('inspections.findings')}</Label>
             <Textarea
               id="findings"
               rows={3}
-              placeholder="Describe your inspection findings..."
+              placeholder={t('inspections.findingsPlaceholder')}
               {...register('findings')}
             />
             {errors.findings && (
@@ -134,24 +133,23 @@ export function InspectionModal({ open, onOpenChange, applicationId }: Props) {
             )}
           </div>
 
-          {/* Recommendations */}
           <div className="space-y-1.5">
-            <Label htmlFor="recommendations">Recommendations (optional)</Label>
+            <Label htmlFor="recommendations">{t('inspections.recommendations')}</Label>
             <Textarea
               id="recommendations"
               rows={2}
-              placeholder="Suggestions for improvement..."
+              placeholder={t('inspections.recommendationsPlaceholder')}
               {...register('recommendations')}
             />
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Submit Inspection
+              {t('inspections.submitInspection')}
             </Button>
           </DialogFooter>
         </form>

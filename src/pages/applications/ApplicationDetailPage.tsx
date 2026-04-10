@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/features/applications/components/StatusBadge';
@@ -24,23 +25,16 @@ import { RejectModal } from '@/features/applications/components/RejectModal';
 import { ClarifyModal } from '@/features/applications/components/ClarifyModal';
 import { SignDocumentModal } from '@/features/applications/components/SignDocumentModal';
 import { InspectionsList } from '@/features/inspections/components/InspectionsList';
+import { PhotoGallery } from '@/shared/components/PhotoGallery';
 
 export default function ApplicationDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { data, isLoading, isError } = useApplication(id!);
   const app = data?.data;
 
-  // ── Workflow mutations ────────────────────────────────────
-  //
-  // Three distinct endpoints:
-  //   - PATCH /status  → district_admin "submit" (draft → pending_admin
-  //     and clarification_needed → pending_admin). Used via
-  //     useUpdateApplicationStatus.
-  //   - POST  /review  → admin approve/clarify/reject.
-  //   - POST  /sign    → super_admin approve (with signature_secret) /
-  //     reject.
   const statusMutation = useUpdateApplicationStatus();
   const reviewMutation = useReviewApplication();
   const signMutation = useSignApplication();
@@ -50,12 +44,10 @@ export default function ApplicationDetailPage() {
     reviewMutation.isPending ||
     signMutation.isPending;
 
-  // ── Modal open state ──────────────────────────────────────
   const [rejectOpen, setRejectOpen] = useState(false);
   const [clarifyOpen, setClarifyOpen] = useState(false);
   const [signOpen, setSignOpen] = useState(false);
 
-  // ── Shared error toast helper ─────────────────────────────
   const toastError = (fallback: string) => (err: unknown) => {
     const message =
       (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -63,55 +55,47 @@ export default function ApplicationDetailPage() {
     toast.error(message);
   };
 
-  // ── District admin: submit or resubmit to admin ───────────
   const handleSubmitToAdmin = () => {
     statusMutation.mutate(
       { id: id!, status: 'pending_admin' },
       {
-        onSuccess: () => toast.success('Submitted to admin for review'),
-        onError: toastError('Failed to submit application'),
+        onSuccess: () => toast.success(t('toast.submitSuccess')),
+        onError: toastError(t('toast.submitFailed')),
       },
     );
   };
 
-  // ── Admin: approve via POST /review ───────────────────────
   const handleApproveAsAdmin = () => {
     reviewMutation.mutate(
       { id: id!, action: 'approve', admin_notes: 'Approved by admin' },
       {
-        onSuccess: () => toast.success('Forwarded to Super Admin'),
-        onError: toastError('Failed to approve application'),
+        onSuccess: () => toast.success(t('toast.approvedForward')),
+        onError: toastError(t('toast.approveFailed')),
       },
     );
   };
 
-  // ── Admin: request clarification via POST /review ─────────
   const handleRequestClarification = (admin_notes: string) => {
     reviewMutation.mutate(
       { id: id!, action: 'clarify', admin_notes },
       {
         onSuccess: () => {
-          toast.success('Clarification requested');
+          toast.success(t('toast.clarificationRequested'));
           setClarifyOpen(false);
         },
-        onError: toastError('Failed to request clarification'),
+        onError: toastError(t('toast.clarificationFailed')),
       },
     );
   };
 
-  // ── Admin OR Super Admin: reject ──────────────────────────
-  //
-  // Dispatches to the correct endpoint based on current state:
-  //   pending_admin        → POST /review  (action: reject)
-  //   pending_super_admin  → POST /sign    (action: reject)
   const handleReject = (reject_reason: string) => {
     if (!app) return;
     const onDone = {
       onSuccess: () => {
-        toast.success('Application rejected');
+        toast.success(t('toast.rejected'));
         setRejectOpen(false);
       },
-      onError: toastError('Failed to reject application'),
+      onError: toastError(t('toast.rejectFailed')),
     };
 
     if (user?.role === 'admin' && app.status === 'pending_admin') {
@@ -130,21 +114,19 @@ export default function ApplicationDetailPage() {
     }
   };
 
-  // ── Super Admin: sign via POST /sign with signature_secret ─
   const handleSignAsSuperAdmin = (signature_secret: string) => {
     signMutation.mutate(
       { id: id!, action: 'approve', signature_secret },
       {
         onSuccess: () => {
-          toast.success('Document signed');
+          toast.success(t('toast.signed'));
           setSignOpen(false);
         },
-        onError: toastError('Failed to sign document'),
+        onError: toastError(t('toast.signFailed')),
       },
     );
   };
 
-  // ── Loading / Error ───────────────────────────────────────
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -156,12 +138,12 @@ export default function ApplicationDetailPage() {
   if (isError || !app) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-2">
-        <p className="text-destructive">Application not found.</p>
+        <p className="text-destructive">{t('appDetail.notFound')}</p>
         <Button
           variant="outline"
           onClick={() => navigate('/applications')}
         >
-          Back to list
+          {t('appDetail.backToList')}
         </Button>
       </div>
     );
@@ -196,7 +178,7 @@ export default function ApplicationDetailPage() {
             <StatusBadge status={app.status} />
           </div>
           <p className="text-sm text-muted-foreground">
-            Created {new Date(app.created_at).toLocaleDateString()}
+            {t('appDetail.created', { date: new Date(app.created_at).toLocaleDateString() })}
           </p>
         </div>
       </div>
@@ -208,7 +190,7 @@ export default function ApplicationDetailPage() {
             {canSubmit && (
               <Button disabled={actionPending} onClick={handleSubmitToAdmin}>
                 {actionPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Submit to Admin
+                {t('appDetail.submitToAdmin')}
               </Button>
             )}
 
@@ -216,21 +198,21 @@ export default function ApplicationDetailPage() {
               <>
                 <Button disabled={actionPending} onClick={handleApproveAsAdmin}>
                   {actionPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Approve &amp; Forward to Super Admin
+                  {t('appDetail.approveForward')}
                 </Button>
                 <Button
                   variant="outline"
                   disabled={actionPending}
                   onClick={() => setClarifyOpen(true)}
                 >
-                  Request Clarification
+                  {t('appDetail.requestClarification')}
                 </Button>
                 <Button
                   variant="destructive"
                   disabled={actionPending}
                   onClick={() => setRejectOpen(true)}
                 >
-                  Reject
+                  {t('appDetail.reject')}
                 </Button>
               </>
             )}
@@ -241,14 +223,14 @@ export default function ApplicationDetailPage() {
                   disabled={actionPending}
                   onClick={() => setSignOpen(true)}
                 >
-                  Sign Document
+                  {t('appDetail.signDocument')}
                 </Button>
                 <Button
                   variant="destructive"
                   disabled={actionPending}
                   onClick={() => setRejectOpen(true)}
                 >
-                  Reject
+                  {t('appDetail.reject')}
                 </Button>
               </>
             )}
@@ -260,15 +242,15 @@ export default function ApplicationDetailPage() {
       {/* ── Tabbed content ── */}
       <Tabs defaultValue="details">
         <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="details">{t('appDetail.details')}</TabsTrigger>
           {hasWateringTasks && (
             <>
-              <TabsTrigger value="watering">Watering</TabsTrigger>
-              <TabsTrigger value="inspections">Inspections</TabsTrigger>
-              <TabsTrigger value="map">Map</TabsTrigger>
+              <TabsTrigger value="watering">{t('appDetail.watering')}</TabsTrigger>
+              <TabsTrigger value="inspections">{t('appDetail.inspections')}</TabsTrigger>
+              <TabsTrigger value="map">{t('appDetail.map')}</TabsTrigger>
             </>
           )}
-          <TabsTrigger value="audit">Audit History</TabsTrigger>
+          <TabsTrigger value="audit">{t('appDetail.auditHistory')}</TabsTrigger>
         </TabsList>
 
         {/* ── Details tab ── */}
@@ -276,43 +258,73 @@ export default function ApplicationDetailPage() {
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>General Information</CardTitle>
+                <CardTitle>{t('appDetail.generalInfo')}</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-y-3 text-sm">
-                <span className="text-muted-foreground">District</span>
+                <span className="text-muted-foreground">{t('appDetail.district')}</span>
                 <span>{app.district?.name ?? '—'}</span>
-                <span className="text-muted-foreground">Section</span>
+                <span className="text-muted-foreground">{t('appDetail.section')}</span>
                 <span>{app.section}</span>
-                <span className="text-muted-foreground">Quantity</span>
-                <span>{app.quantity.toLocaleString()} saplings</span>
-                <span className="text-muted-foreground">Planting Date</span>
+                <span className="text-muted-foreground">{t('appDetail.saplingType')}</span>
+                <span>
+                  {app.sapling_type?.name ?? '—'}
+                  {app.sapling_type?.scientific_name && (
+                    <span className="ml-1 text-xs italic text-muted-foreground">
+                      ({app.sapling_type.scientific_name})
+                    </span>
+                  )}
+                </span>
+                <span className="text-muted-foreground">{t('appDetail.quantity')}</span>
+                <span>{app.quantity.toLocaleString()} {t('appDetail.saplings')}</span>
+                {app.sapling_type && (
+                  <>
+                    <span className="text-muted-foreground">{t('appDetail.waterPerSapling')}</span>
+                    <span>
+                      {app.sapling_type.water_require_ltr} L
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        {t('appDetail.perWatering')}
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground">{t('appDetail.totalWaterNeed')}</span>
+                    <span className="font-medium text-emerald-700 dark:text-emerald-400">
+                      {(
+                        app.sapling_type.water_require_ltr * app.quantity
+                      ).toLocaleString()}{' '}
+                      L
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">
+                        {t('appDetail.perWatering')}
+                      </span>
+                    </span>
+                  </>
+                )}
+                <span className="text-muted-foreground">{t('appDetail.plantingDate')}</span>
                 <span>
                   {new Date(app.planting_date).toLocaleDateString()}
                 </span>
-                <span className="text-muted-foreground">Water Method</span>
-                <span className="capitalize">
-                  {app.water_method.replace('_', ' ')}
+                <span className="text-muted-foreground">{t('appDetail.waterMethodLabel')}</span>
+                <span>
+                  {t(`waterMethod.${app.water_method}`)}
                 </span>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Financial & Notes</CardTitle>
+                <CardTitle>{t('appDetail.financialNotes')}</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-y-3 text-sm">
-                <span className="text-muted-foreground">Estimated Cost</span>
+                <span className="text-muted-foreground">{t('appDetail.estimatedCost')}</span>
                 <span>{app.estimated_cost?.toLocaleString() ?? '—'}</span>
-                <span className="text-muted-foreground">Actual Cost</span>
+                <span className="text-muted-foreground">{t('appDetail.actualCost')}</span>
                 <span>{app.actual_cost?.toLocaleString() ?? '—'}</span>
-                <span className="text-muted-foreground">Notes</span>
+                <span className="text-muted-foreground">{t('appDetail.notes')}</span>
                 <span>{app.notes || '—'}</span>
-                <span className="text-muted-foreground">Admin Notes</span>
+                <span className="text-muted-foreground">{t('appDetail.adminNotes')}</span>
                 <span>{app.admin_notes || '—'}</span>
                 {app.reject_reason && (
                   <>
                     <span className="text-muted-foreground">
-                      Reject Reason
+                      {t('appDetail.rejectReason')}
                     </span>
                     <span className="text-destructive">
                       {app.reject_reason}
@@ -322,7 +334,7 @@ export default function ApplicationDetailPage() {
                 {app.digital_signature && (
                   <>
                     <span className="text-muted-foreground">
-                      Digital Signature
+                      {t('appDetail.digitalSignature')}
                     </span>
                     <span className="break-all font-mono text-xs">
                       {app.digital_signature}
@@ -331,7 +343,7 @@ export default function ApplicationDetailPage() {
                 )}
                 {app.approved_at && (
                   <>
-                    <span className="text-muted-foreground">Approved At</span>
+                    <span className="text-muted-foreground">{t('appDetail.approvedAt')}</span>
                     <span>
                       {new Date(app.approved_at).toLocaleString()}
                     </span>
@@ -341,11 +353,22 @@ export default function ApplicationDetailPage() {
             </Card>
           </div>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('appDetail.photos')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PhotoGallery
+                photos={app.photos ?? []}
+                emptyMessage={t('appDetail.noPhotos')}
+              />
+            </CardContent>
+          </Card>
+
           {!hasWateringTasks && (
             <Card>
               <CardContent className="py-6 text-center text-sm text-muted-foreground">
-                Watering, Inspections, and Map tabs will become available after
-                the application is signed and approved.
+                {t('appDetail.wateringNotAvailable')}
               </CardContent>
             </Card>
           )}

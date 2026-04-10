@@ -27,49 +27,49 @@ export interface StatusConfig {
 
 const statusMap: Record<ApplicationStatus, StatusConfig> = {
   draft: {
-    label: 'Draft',
+    label: 'status.draft',
     icon: FileEdit,
     className:
       'bg-muted text-muted-foreground border-border',
   },
   pending_admin: {
-    label: 'Pending Admin',
+    label: 'status.pending_admin',
     icon: Clock,
     className:
       'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30',
   },
   pending_super_admin: {
-    label: 'Pending SuperAdmin',
+    label: 'status.pending_super_admin',
     icon: Clock,
     className:
       'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30',
   },
   clarification_needed: {
-    label: 'Clarification',
+    label: 'status.clarification_needed',
     icon: Clock,
     className:
       'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30',
   },
   signed: {
-    label: 'Signed',
+    label: 'status.signed',
     icon: CheckCircle2,
     className:
       'bg-emerald-100 text-emerald-900 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30',
   },
   completed: {
-    label: 'Completed',
+    label: 'status.completed',
     icon: Leaf,
     className:
       'bg-emerald-100 text-emerald-900 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30',
   },
   rejected: {
-    label: 'Rejected',
+    label: 'status.rejected',
     icon: XCircle,
     className:
       'bg-red-100 text-red-900 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30',
   },
   watering_in_progress: {
-    label: 'Watering',
+    label: 'status.watering_in_progress',
     icon: Droplets,
     className:
       'bg-sky-100 text-sky-900 border-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30',
@@ -79,7 +79,7 @@ const statusMap: Record<ApplicationStatus, StatusConfig> = {
 export function getStatusConfig(status: ApplicationStatus): StatusConfig {
   return (
     statusMap[status] ?? {
-      label: status,
+      label: `status.${status}`,
       icon: FileEdit,
       className: 'bg-muted text-muted-foreground border-border',
     }

@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import {
   Dialog,
@@ -15,10 +16,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-
-// Admin review action === 'clarify' ships `admin_notes` back to
-// the district admin so they know exactly what to fix before
-// re-submitting.
 
 const schema = z.object({
   admin_notes: z
@@ -43,6 +40,7 @@ export function ClarifyModal({
   onConfirm,
   isPending,
 }: Props) {
+  const { t } = useTranslation();
   const {
     register,
     handleSubmit,
@@ -66,20 +64,18 @@ export function ClarifyModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Request Clarification</DialogTitle>
+          <DialogTitle>{t('clarifyModal.title')}</DialogTitle>
           <DialogDescription>
-            Describe what the district admin needs to update. They will be
-            asked to revise and resubmit the application.
+            {t('clarifyModal.description')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="admin_notes">Clarification Notes</Label>
+            <Label htmlFor="admin_notes">{t('clarifyModal.label')}</Label>
             <Textarea
               id="admin_notes"
               rows={4}
-              placeholder="e.g. Please attach GPS coordinates for the planting zone."
               autoFocus
               {...register('admin_notes')}
             />
@@ -97,11 +93,11 @@ export function ClarifyModal({
               onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Send Clarification
+              {t('clarifyModal.confirm')}
             </Button>
           </DialogFooter>
         </form>

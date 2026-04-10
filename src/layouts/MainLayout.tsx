@@ -7,8 +7,12 @@ import {
   ScrollText,
   LogOut,
   Leaf,
+  Globe,
+  MapPin,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   SidebarProvider,
@@ -33,7 +37,7 @@ import type { UserRole } from '@/shared/types/api.types';
 // ── Sidebar navigation config ───────────────────────────────
 
 interface NavItem {
-  title: string;
+  titleKey: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
   roles: UserRole[];
@@ -41,31 +45,37 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    title: 'Dashboard',
+    titleKey: 'nav.dashboard',
     path: '/dashboard',
     icon: BarChart3,
     roles: ['super_admin', 'admin', 'district_admin', 'auditor'],
   },
   {
-    title: 'Applications',
+    titleKey: 'nav.applications',
     path: '/applications',
     icon: TreePine,
     roles: ['super_admin', 'admin', 'district_admin', 'auditor'],
   },
   {
-    title: 'Users',
+    titleKey: 'nav.users',
     path: '/users',
     icon: Users,
     roles: ['super_admin', 'admin'],
   },
   {
-    title: 'Inspections',
+    titleKey: 'nav.inspections',
     path: '/inspections',
     icon: Sprout,
     roles: ['super_admin', 'admin', 'auditor'],
   },
   {
-    title: 'Audit Logs',
+    titleKey: 'nav.districts',
+    path: '/districts',
+    icon: MapPin,
+    roles: ['super_admin'],
+  },
+  {
+    titleKey: 'nav.auditLogs',
     path: '/audit-logs',
     icon: ScrollText,
     roles: ['super_admin'],
@@ -75,6 +85,7 @@ const navItems: NavItem[] = [
 // ── Component ───────────────────────────────────────────────
 
 export default function MainLayout() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStore();
@@ -83,9 +94,13 @@ export default function MainLayout() {
     (item) => user && item.roles.includes(user.role),
   );
 
+  const toggleLanguage = () => {
+    i18n.changeLanguage(i18n.language === 'ru' ? 'en' : 'ru');
+  };
+
   const handleLogout = () => {
     logout();
-    toast.success('Logged out successfully');
+    toast.success(t('nav.loggedOutSuccess'));
     navigate('/login', { replace: true });
   };
 
@@ -102,9 +117,9 @@ export default function MainLayout() {
                     <Leaf className="h-4 w-4" />
                   </div>
                   <div className="flex flex-col gap-0.5 leading-none">
-                    <span className="font-semibold">Ozelenenie</span>
+                    <span className="font-semibold">{t('nav.appName')}</span>
                     <span className="text-xs text-muted-foreground">
-                      Tree & Irrigation Tracker
+                      {t('nav.appTagline')}
                     </span>
                   </div>
                 </SidebarMenuButton>
@@ -116,7 +131,7 @@ export default function MainLayout() {
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupLabel>{t('nav.navigation')}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {visibleItems.map((item) => (
@@ -126,7 +141,7 @@ export default function MainLayout() {
                         onClick={() => navigate(item.path)}
                       >
                         <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
+                        <span>{t(item.titleKey)}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
@@ -144,14 +159,14 @@ export default function MainLayout() {
                     <span className="text-sm font-medium text-foreground">
                       {user?.full_name}
                     </span>
-                    <span className="text-xs">{user?.role.replace('_', ' ')}</span>
+                    <span className="text-xs">{user ? t(`role.${user.role}`) : ''}</span>
                   </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleLogout}>
                   <LogOut className="h-4 w-4" />
-                  <span>Logout</span>
+                  <span>{t('common.logout')}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -166,6 +181,12 @@ export default function MainLayout() {
             <span className="text-sm font-medium capitalize text-muted-foreground">
               {location.pathname.split('/').filter(Boolean).join(' / ')}
             </span>
+            <div className="ml-auto">
+              <Button variant="ghost" size="sm" onClick={toggleLanguage} className="gap-1.5">
+                <Globe className="h-4 w-4" />
+                {i18n.language === 'ru' ? 'EN' : 'RU'}
+              </Button>
+            </div>
           </header>
           <main className="flex-1 p-6">
             <Outlet />

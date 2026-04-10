@@ -17,11 +17,13 @@ import {
   Banknote,
   Loader2,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDistrictStats } from '@/features/dashboard/hooks/useAnalytics';
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useDistrictStats();
   const stats = data?.data ?? [];
 
@@ -37,25 +39,25 @@ export default function DashboardPage() {
       : 0;
 
   const kpis = [
-    { title: 'Total Applications',  value: totalApps,                           icon: ClipboardList },
-    { title: 'Approved',            value: approvedApps,                        icon: CheckCircle2 },
-    { title: 'Completed',           value: completedApps,                       icon: CheckCircle2 },
-    { title: 'Total Saplings',      value: totalSaplings.toLocaleString(),      icon: TreePine },
-    { title: 'Avg Survival Rate',   value: `${avgSurvival.toFixed(1)}%`,        icon: TreePine },
-    { title: 'Total Cost',          value: `${(totalCost / 1_000_000).toFixed(1)}M`, icon: Banknote },
+    { title: t('dashboard.totalApplications'),  value: totalApps,                           icon: ClipboardList },
+    { title: t('dashboard.approved'),            value: approvedApps,                        icon: CheckCircle2 },
+    { title: t('dashboard.completed'),           value: completedApps,                       icon: CheckCircle2 },
+    { title: t('dashboard.totalSaplings'),       value: totalSaplings.toLocaleString(),      icon: TreePine },
+    { title: t('dashboard.avgSurvivalRate'),     value: `${avgSurvival.toFixed(1)}%`,        icon: TreePine },
+    { title: t('dashboard.totalCost'),           value: `${(totalCost / 1_000_000).toFixed(1)}M`, icon: Banknote },
   ];
 
   // ── Chart data ────────────────────────────────────────────
   const planVsFact = stats.map((d) => ({
-    name: d.district_name.length > 12 ? d.district_name.slice(0, 12) + '…' : d.district_name,
-    'Total Apps':    d.total_apps,
-    'Approved':      d.approved_apps,
-    'Completed':     d.completed_apps,
+    name: d.district_name.length > 12 ? d.district_name.slice(0, 12) + '\u2026' : d.district_name,
+    [t('dashboard.chartTotalApps')]:    d.total_apps,
+    [t('dashboard.chartApproved')]:     d.approved_apps,
+    [t('dashboard.chartCompleted')]:    d.completed_apps,
   }));
 
   const survivalData = stats.map((d) => ({
-    name: d.district_name.length > 12 ? d.district_name.slice(0, 12) + '…' : d.district_name,
-    'Survival %': d.avg_survival_rate,
+    name: d.district_name.length > 12 ? d.district_name.slice(0, 12) + '\u2026' : d.district_name,
+    [t('dashboard.chartSurvival')]: d.avg_survival_rate,
   }));
 
   if (isLoading) {
@@ -69,7 +71,7 @@ export default function DashboardPage() {
   if (isError) {
     return (
       <div className="flex h-64 items-center justify-center text-destructive">
-        Failed to load analytics. Please try again later.
+        {t('dashboard.loadError')}
       </div>
     );
   }
@@ -77,9 +79,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
         <p className="text-sm text-muted-foreground">
-          District analytics overview
+          {t('dashboard.subtitle')}
         </p>
       </div>
 
@@ -105,12 +107,12 @@ export default function DashboardPage() {
         {/* Plan vs Fact bar chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Plan vs Fact by District</CardTitle>
+            <CardTitle>{t('dashboard.planVsFact')}</CardTitle>
           </CardHeader>
           <CardContent>
             {planVsFact.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
-                No data available
+                {t('common.noData')}
               </p>
             ) : (
               <ResponsiveContainer width="100%" height={320}>
@@ -120,9 +122,9 @@ export default function DashboardPage() {
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="Total Apps"  fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Approved"    fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Completed"   fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey={t('dashboard.chartTotalApps')}  fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey={t('dashboard.chartApproved')}   fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey={t('dashboard.chartCompleted')}  fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -132,12 +134,12 @@ export default function DashboardPage() {
         {/* Survival rate line chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Average Survival Rate by District</CardTitle>
+            <CardTitle>{t('dashboard.survivalByDistrict')}</CardTitle>
           </CardHeader>
           <CardContent>
             {survivalData.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
-                No data available
+                {t('common.noData')}
               </p>
             ) : (
               <ResponsiveContainer width="100%" height={320}>
@@ -149,7 +151,7 @@ export default function DashboardPage() {
                   <Legend />
                   <Line
                     type="monotone"
-                    dataKey="Survival %"
+                    dataKey={t('dashboard.chartSurvival')}
                     stroke="hsl(var(--chart-4))"
                     strokeWidth={2}
                     dot={{ r: 4 }}

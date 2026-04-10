@@ -7,6 +7,7 @@ import {
 import { userService } from '@/features/users/user.service';
 import type {
   RegisterRequest,
+  UpdateUserReq,
   UserListParams,
 } from '@/shared/types/api.types';
 
@@ -29,6 +30,17 @@ export function useCreateUser() {
   return useMutation({
     mutationFn: (data: RegisterRequest) =>
       userService.createUser(data).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: userKeys.lists() });
+    },
+  });
+}
+
+export function useUpdateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateUserReq }) =>
+      userService.updateUser(id, data).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: userKeys.lists() });
     },

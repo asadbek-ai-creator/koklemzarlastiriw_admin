@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ClipboardCheck, Loader2, Plus, Star } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function InspectionsList({ applicationId }: Props) {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const { data, isLoading } = useInspections(applicationId);
   const inspections = data?.data ?? [];
@@ -35,12 +37,12 @@ export function InspectionsList({ applicationId }: Props) {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
-              Inspections
+              {t('inspections.title')}
             </CardTitle>
             {user?.role === 'auditor' && (
               <Button size="sm" onClick={() => setModalOpen(true)}>
                 <Plus className="mr-1 h-4 w-4" />
-                Add Inspection
+                {t('inspections.addInspection')}
               </Button>
             )}
           </div>
@@ -48,7 +50,7 @@ export function InspectionsList({ applicationId }: Props) {
         <CardContent>
           {inspections.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No inspections recorded yet.
+              {t('inspections.noInspections')}
             </p>
           ) : (
             <div className="space-y-4">
@@ -58,7 +60,6 @@ export function InspectionsList({ applicationId }: Props) {
                   className="rounded-md border p-4 space-y-2"
                 >
                   <div className="flex flex-wrap items-center gap-3">
-                    {/* Star rating */}
                     <div className="flex gap-0.5">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
@@ -72,10 +73,10 @@ export function InspectionsList({ applicationId }: Props) {
                       ))}
                     </div>
                     {insp.survival_rate_ok && (
-                      <Badge variant="outline">Survival OK</Badge>
+                      <Badge variant="outline">{t('inspections.survivalOk')}</Badge>
                     )}
                     {insp.irrigation_ok && (
-                      <Badge variant="outline">Irrigation OK</Badge>
+                      <Badge variant="outline">{t('inspections.irrigationOk')}</Badge>
                     )}
                     <span className="ml-auto text-xs text-muted-foreground">
                       {new Date(insp.created_at).toLocaleString()}
@@ -87,7 +88,7 @@ export function InspectionsList({ applicationId }: Props) {
                   {insp.recommendations && (
                     <p className="text-sm text-muted-foreground">
                       <span className="font-medium text-foreground">
-                        Recommendation:{' '}
+                        {t('inspections.recommendation')}{' '}
                       </span>
                       {insp.recommendations}
                     </p>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ import type { ApplicationStatus } from '@/shared/types/api.types';
 const PAGE_SIZE = 20;
 
 export default function ApplicationsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [page, setPage] = useState(1);
@@ -63,15 +65,15 @@ export default function ApplicationsPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Applications</h1>
+          <h1 className="text-2xl font-bold">{t('applications.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            Manage tree planting applications
+            {t('applications.subtitle')}
           </p>
         </div>
         {user?.role === 'district_admin' && (
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Application
+            {t('applications.newApplication')}
           </Button>
         )}
       </div>
@@ -81,7 +83,7 @@ export default function ApplicationsPage() {
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search applications..."
+            placeholder={t('applications.searchPlaceholder')}
             className="pl-9"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
@@ -89,15 +91,15 @@ export default function ApplicationsPage() {
         </div>
         <Select value={statusFilter} onValueChange={handleStatusChange}>
           <SelectTrigger className="w-52">
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder={t('applications.filterByStatus')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="all">{t('applications.allStatuses')}</SelectItem>
             {ALL_STATUSES.map((s) => {
               const cfg = getStatusConfig(s);
               return (
                 <SelectItem key={s} value={s}>
-                  {cfg.label}
+                  {t(cfg.label)}
                 </SelectItem>
               );
             })}
@@ -111,14 +113,14 @@ export default function ApplicationsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>App No.</TableHead>
-              <TableHead>District</TableHead>
-              <TableHead>Section</TableHead>
-              <TableHead className="text-right">Qty</TableHead>
-              <TableHead>Water Method</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Est. Cost</TableHead>
-              <TableHead>Created</TableHead>
+              <TableHead>{t('applications.appNo')}</TableHead>
+              <TableHead>{t('applications.district')}</TableHead>
+              <TableHead>{t('applications.section')}</TableHead>
+              <TableHead className="text-right">{t('applications.qty')}</TableHead>
+              <TableHead>{t('applications.waterMethod')}</TableHead>
+              <TableHead>{t('applications.status')}</TableHead>
+              <TableHead className="text-right">{t('applications.estCost')}</TableHead>
+              <TableHead>{t('applications.created')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -135,7 +137,7 @@ export default function ApplicationsPage() {
             ) : applications.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
-                  No applications found.
+                  {t('applications.noApplications')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -151,8 +153,8 @@ export default function ApplicationsPage() {
                   <TableCell className="text-right">
                     {app.quantity.toLocaleString()}
                   </TableCell>
-                  <TableCell className="capitalize">
-                    {app.water_method.replace('_', ' ')}
+                  <TableCell>
+                    {t(`waterMethod.${app.water_method}`)}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={app.status} />
@@ -176,7 +178,7 @@ export default function ApplicationsPage() {
       {meta && meta.total_pages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Page {meta.page} of {meta.total_pages} &middot; {meta.total} total
+            {t('common.page', { current: meta.page, total: meta.total_pages })} &middot; {t('common.totalItems', { count: meta.total })}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -185,7 +187,7 @@ export default function ApplicationsPage() {
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
-              <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+              <ChevronLeft className="mr-1 h-4 w-4" /> {t('common.previous')}
             </Button>
             <Button
               variant="outline"
@@ -193,7 +195,7 @@ export default function ApplicationsPage() {
               disabled={page >= meta.total_pages}
               onClick={() => setPage((p) => p + 1)}
             >
-              Next <ChevronRight className="ml-1 h-4 w-4" />
+              {t('common.next')} <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
         </div>

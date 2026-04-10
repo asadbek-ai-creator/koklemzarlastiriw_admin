@@ -1,6 +1,7 @@
 import { api } from '@/shared/api/axios.instance';
 import type {
   RegisterRequest,
+  UpdateUserReq,
   UserEnvelope,
   UserListEnvelope,
   UserListParams,
@@ -12,6 +13,9 @@ export const userService = {
 
   createUser: (data: RegisterRequest) =>
     api.post<UserEnvelope>('/users', data),
+
+  updateUser: (id: string, data: UpdateUserReq) =>
+    api.put<UserEnvelope>(`/users/${id}`, data),
 
   deactivateUser: (id: string) =>
     api.put<UserEnvelope>(`/users/${id}/deactivate`),

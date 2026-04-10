@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import {
   Dialog,
@@ -15,10 +16,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-// `signature_secret` is REQUIRED by Swagger for the approve
-// variant of POST /applications/:id/sign. It's the super admin's
-// personal signing passphrase — treated as a password input here.
 
 const schema = z.object({
   signature_secret: z
@@ -42,6 +39,7 @@ export function SignDocumentModal({
   onConfirm,
   isPending,
 }: Props) {
+  const { t } = useTranslation();
   const {
     register,
     handleSubmit,
@@ -67,17 +65,16 @@ export function SignDocumentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
-            Sign Document
+            {t('signModal.title')}
           </DialogTitle>
           <DialogDescription>
-            Enter your signature secret to digitally sign and approve this
-            application. Watering tasks will be auto-created on success.
+            {t('signModal.description')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="signature_secret">Signature Secret</Label>
+            <Label htmlFor="signature_secret">{t('signModal.label')}</Label>
             <Input
               id="signature_secret"
               type="password"
@@ -100,11 +97,11 @@ export function SignDocumentModal({
               onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign &amp; Approve
+              {t('signModal.confirm')}
             </Button>
           </DialogFooter>
         </form>
