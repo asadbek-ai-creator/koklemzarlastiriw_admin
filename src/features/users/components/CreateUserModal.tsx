@@ -32,13 +32,6 @@ import type { UserRole } from '@/shared/types/api.types';
 
 // ── Role options (filtered by actor's role at render time) ──
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  super_admin: 'Super Admin',
-  admin: 'Admin',
-  district_admin: 'District Admin',
-  auditor: 'Auditor',
-};
-
 const CREATABLE_BY: Record<UserRole, UserRole[]> = {
   super_admin: ['super_admin', 'admin', 'district_admin', 'auditor'],
   admin: ['district_admin', 'auditor'],

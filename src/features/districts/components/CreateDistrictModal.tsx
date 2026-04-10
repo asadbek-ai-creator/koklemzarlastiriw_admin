@@ -27,8 +27,8 @@ const schema = z.object({
     .max(10, 'Max 10 characters')
     .regex(/^[A-Z0-9]+$/, 'Uppercase letters and digits only'),
   region: z.string().optional(),
-  budget: z.coerce.number().min(0, 'Must be ≥ 0').optional(),
-  is_active: z.boolean().default(true),
+  budget: z.number().min(0, 'Must be ≥ 0').optional(),
+  is_active: z.boolean(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -58,7 +58,8 @@ export function CreateDistrictModal({ open, onOpenChange }: Props) {
     },
   });
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (raw: Record<string, unknown>) => {
+    const values = raw as FormValues;
     try {
       await createMutation.mutateAsync({
         name: values.name,
@@ -122,7 +123,7 @@ export function CreateDistrictModal({ open, onOpenChange }: Props) {
                 id="district-budget"
                 type="number"
                 min={0}
-                {...register('budget')}
+                {...register('budget', { valueAsNumber: true })}
               />
               {errors.budget && (
                 <p className="text-xs text-destructive">{errors.budget.message}</p>
