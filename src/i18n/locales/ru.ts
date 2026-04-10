@@ -114,7 +114,7 @@ const ru = {
   // ── Status labels ───────────────────────────────────────────
   'status.draft': 'Черновик',
   'status.pending_admin': 'Ожидает админа',
-  'status.pending_super_admin': 'Ожидает суперадмина',
+  'status.pending_superadmin': 'Ожидает суперадмина',
   'status.clarification_needed': 'Уточнение',
   'status.signed': 'Подписано',
   'status.completed': 'Завершено',

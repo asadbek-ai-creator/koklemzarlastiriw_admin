@@ -48,7 +48,8 @@ export default function LoginPage() {
 
       setAuth(user, access_token, refresh_token);
       toast.success(t('login.welcomeBack', { name: user.full_name }));
-      navigate('/dashboard', { replace: true });
+      const home = user.role === 'super_admin' ? '/dashboard' : '/applications';
+      navigate(home, { replace: true });
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data

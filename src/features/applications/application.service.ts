@@ -5,7 +5,6 @@ import type {
   ApplicationListParams,
   CreateApplicationRequest,
   UpdateApplicationRequest,
-  UpdateApplicationStatusRequest,
   ReviewRequest,
   SignRequest,
   WateringTaskListEnvelope,
@@ -32,22 +31,14 @@ export const applicationService = {
     api.delete(`/applications/${id}`),
 
   // ── Workflow transitions ────────────────────────────────────
-  // Single endpoint for every status change. The server derives
-  // the actor's role from the bearer token and validates the
-  // (current → next) transition. See ALLOWED_TRANSITIONS in the
-  // mock handler / backend for the rules.
-  updateStatus: (id: string, data: UpdateApplicationStatusRequest) =>
-    api.patch<ApplicationEnvelope>(`/applications/${id}/status`, data),
 
-  // ── Swagger-compliant review/sign endpoints ────────────────
-  //
+  // District admin submits a draft/clarification-needed application:
+  //   POST /applications/:id/submit  (no body)
+  submit: (id: string) =>
+    api.post<ApplicationEnvelope>(`/applications/${id}/submit`),
+
   // Admin reviews an application (approve / reject / clarify):
   //   POST /applications/:id/review
-  //   body: { action, admin_notes?, reject_reason? }
-  //
-  // Super admin signs or rejects an application:
-  //   POST /applications/:id/sign
-  //   body: { action, signature_secret, reject_reason? }
   review: (id: string, data: ReviewRequest) =>
     api.post<ApplicationEnvelope>(`/applications/${id}/review`, data),
 

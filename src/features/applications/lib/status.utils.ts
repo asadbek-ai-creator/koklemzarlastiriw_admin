@@ -38,8 +38,8 @@ const statusMap: Record<ApplicationStatus, StatusConfig> = {
     className:
       'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30',
   },
-  pending_super_admin: {
-    label: 'status.pending_super_admin',
+  pending_superadmin: {
+    label: 'status.pending_superadmin',
     icon: Clock,
     className:
       'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30',
@@ -89,7 +89,7 @@ export function getStatusConfig(status: ApplicationStatus): StatusConfig {
 export const ALL_STATUSES: ApplicationStatus[] = [
   'draft',
   'pending_admin',
-  'pending_super_admin',
+  'pending_superadmin',
   'signed',
   'rejected',
   'clarification_needed',

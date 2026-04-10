@@ -48,7 +48,7 @@ const navItems: NavItem[] = [
     titleKey: 'nav.dashboard',
     path: '/dashboard',
     icon: BarChart3,
-    roles: ['super_admin', 'admin', 'district_admin', 'auditor'],
+    roles: ['super_admin'],
   },
   {
     titleKey: 'nav.applications',

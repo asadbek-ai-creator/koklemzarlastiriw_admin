@@ -2,6 +2,8 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { lazy, Suspense } from 'react';
 import { ProtectedRoute } from './ProtectedRoute';
 // ── Lazy-loaded pages ───────────────────────────────────────
+import { useAuthStore } from '@/features/auth/store/auth.store';
+
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const UnauthorizedPage = lazy(() => import('@/pages/auth/UnauthorizedPage'));
 const MainLayout = lazy(() => import('@/layouts/MainLayout'));
@@ -13,6 +15,13 @@ const UsersPage = lazy(() => import('@/pages/users/UsersPage'));
 const AuditLogsPage = lazy(() => import('@/pages/audit/AuditLogsPage'));
 const DistrictsPage = lazy(() => import('@/pages/districts/DistrictsPage'));
 const InspectionsPage = lazy(() => import('@/pages/inspections/InspectionsPage'));
+
+// ── Role-aware default redirect ─────────────────────────────
+function DefaultRedirect() {
+  const user = useAuthStore((s) => s.user);
+  const target = user?.role === 'super_admin' ? '/dashboard' : '/applications';
+  return <Navigate to={target} replace />;
+}
 
 // ── Fallback spinner ────────────────────────────────────────
 function PageLoader() {
@@ -52,12 +61,17 @@ const router = createBrowserRouter([
         ),
         children: [
           {
-            path: '/dashboard',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <DashboardPage />
-              </Suspense>
-            ),
+            element: <ProtectedRoute allowedRoles={['super_admin']} />,
+            children: [
+              {
+                path: '/dashboard',
+                element: (
+                  <Suspense fallback={<PageLoader />}>
+                    <DashboardPage />
+                  </Suspense>
+                ),
+              },
+            ],
           },
           {
             path: '/applications',
@@ -157,7 +171,7 @@ const router = createBrowserRouter([
   },
   {
     path: '*',
-    element: <Navigate to="/dashboard" replace />,
+    element: <DefaultRedirect />,
   },
 ]);
 

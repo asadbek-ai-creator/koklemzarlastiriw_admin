@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import {
   useApplication,
-  useUpdateApplicationStatus,
+  useSubmitApplication,
   useReviewApplication,
   useSignApplication,
 } from '@/features/applications/hooks/useApplications';
@@ -35,12 +35,12 @@ export default function ApplicationDetailPage() {
   const { data, isLoading, isError } = useApplication(id!);
   const app = data?.data;
 
-  const statusMutation = useUpdateApplicationStatus();
+  const submitMutation = useSubmitApplication();
   const reviewMutation = useReviewApplication();
   const signMutation = useSignApplication();
 
   const actionPending =
-    statusMutation.isPending ||
+    submitMutation.isPending ||
     reviewMutation.isPending ||
     signMutation.isPending;
 
@@ -56,13 +56,10 @@ export default function ApplicationDetailPage() {
   };
 
   const handleSubmitToAdmin = () => {
-    statusMutation.mutate(
-      { id: id!, status: 'pending_admin' },
-      {
-        onSuccess: () => toast.success(t('toast.submitSuccess')),
-        onError: toastError(t('toast.submitFailed')),
-      },
-    );
+    submitMutation.mutate(id!, {
+      onSuccess: () => toast.success(t('toast.submitSuccess')),
+      onError: toastError(t('toast.submitFailed')),
+    });
   };
 
   const handleApproveAsAdmin = () => {
@@ -105,7 +102,7 @@ export default function ApplicationDetailPage() {
       );
     } else if (
       user?.role === 'super_admin' &&
-      app.status === 'pending_super_admin'
+      app.status === 'pending_superadmin'
     ) {
       signMutation.mutate(
         { id: id!, action: 'reject', signature_secret: '', reject_reason },
@@ -155,11 +152,12 @@ export default function ApplicationDetailPage() {
   const canReview =
     user?.role === 'admin' && app.status === 'pending_admin';
   const canSign =
-    user?.role === 'super_admin' && app.status === 'pending_super_admin';
+    user?.role === 'super_admin' && app.status === 'pending_superadmin';
 
   const hasWateringTasks = ['signed', 'watering_in_progress', 'completed'].includes(
     app.status,
   );
+  const isDistrictAdmin = user?.role === 'district_admin';
 
   return (
     <div className="space-y-6">
@@ -246,11 +244,15 @@ export default function ApplicationDetailPage() {
           {hasWateringTasks && (
             <>
               <TabsTrigger value="watering">{t('appDetail.watering')}</TabsTrigger>
-              <TabsTrigger value="inspections">{t('appDetail.inspections')}</TabsTrigger>
+              {!isDistrictAdmin && (
+                <TabsTrigger value="inspections">{t('appDetail.inspections')}</TabsTrigger>
+              )}
               <TabsTrigger value="map">{t('appDetail.map')}</TabsTrigger>
             </>
           )}
-          <TabsTrigger value="audit">{t('appDetail.auditHistory')}</TabsTrigger>
+          {!isDistrictAdmin && (
+            <TabsTrigger value="audit">{t('appDetail.auditHistory')}</TabsTrigger>
+          )}
         </TabsList>
 
         {/* ── Details tab ── */}
@@ -384,8 +386,8 @@ export default function ApplicationDetailPage() {
           </TabsContent>
         )}
 
-        {/* ── Inspections tab (post-approval only) ── */}
-        {hasWateringTasks && (
+        {/* ── Inspections tab (post-approval only, not for district_admin) ── */}
+        {hasWateringTasks && !isDistrictAdmin && (
           <TabsContent value="inspections" className="pt-4">
             <InspectionsList applicationId={id!} />
           </TabsContent>
@@ -398,10 +400,12 @@ export default function ApplicationDetailPage() {
           </TabsContent>
         )}
 
-        {/* ── Audit History tab ── */}
-        <TabsContent value="audit" className="pt-4">
-          <AuditHistory applicationId={id!} />
-        </TabsContent>
+        {/* ── Audit History tab (not for district_admin) ── */}
+        {!isDistrictAdmin && (
+          <TabsContent value="audit" className="pt-4">
+            <AuditHistory applicationId={id!} />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* ── Workflow modals ── */}

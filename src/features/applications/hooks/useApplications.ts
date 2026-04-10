@@ -3,7 +3,6 @@ import { applicationService } from '@/features/applications/application.service'
 import type {
   ApplicationListParams,
   CreateApplicationRequest,
-  UpdateApplicationStatusRequest,
   ReviewRequest,
   SignRequest,
 } from '@/shared/types/api.types';
@@ -42,25 +41,15 @@ export function useCreateApplication() {
   });
 }
 
-// ── Unified workflow mutation ───────────────────────────────
-//
-// One hook for every status change (submit / approve / sign /
-// reject / clarify). The server validates whether the current
-// user's role may perform the requested transition; this hook
-// just dispatches and invalidates the relevant caches.
+// ── Submit (district_admin → admin) ────────────────────────
 
-export interface UpdateApplicationStatusVariables
-  extends UpdateApplicationStatusRequest {
-  id: string;
-}
-
-export function useUpdateApplicationStatus() {
+export function useSubmitApplication() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: UpdateApplicationStatusVariables) =>
-      applicationService.updateStatus(id, body).then((r) => r.data),
-    onSuccess: (_data, variables) => {
-      qc.invalidateQueries({ queryKey: applicationKeys.detail(variables.id) });
+    mutationFn: (id: string) =>
+      applicationService.submit(id).then((r) => r.data),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: applicationKeys.detail(id) });
       qc.invalidateQueries({ queryKey: applicationKeys.lists() });
     },
   });

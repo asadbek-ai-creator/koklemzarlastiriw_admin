@@ -9,30 +9,13 @@ export type UserRole = 'super_admin' | 'admin' | 'district_admin' | 'auditor';
 export type ApplicationStatus =
   | 'draft'
   | 'pending_admin'
-  | 'pending_super_admin'
+  | 'pending_superadmin'
   | 'signed'
   | 'rejected'
   | 'clarification_needed'
   | 'watering_in_progress'
   | 'completed';
 
-/** Statuses a client may transition an application TO via PATCH /status. */
-export type ApplicationStatusTransition = Extract<
-  ApplicationStatus,
-  | 'pending_admin'
-  | 'pending_super_admin'
-  | 'signed'
-  | 'rejected'
-  | 'clarification_needed'
->;
-
-export interface UpdateApplicationStatusRequest {
-  status: ApplicationStatusTransition;
-  /** Required when status === 'rejected'. */
-  reason?: string;
-  /** Optional admin/clarification notes. */
-  notes?: string;
-}
 
 export type WaterMethod =
   | 'tanker'

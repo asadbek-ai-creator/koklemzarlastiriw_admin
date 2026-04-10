@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { applicationService } from '@/features/applications/application.service';
 import { inspectionService } from '@/features/inspections/inspection.service';
+import { useAuthStore } from '@/features/auth/store/auth.store';
 import type {
   InspectionRequest,
   InspectionListParams,
@@ -18,11 +19,12 @@ export const inspectionKeys = {
 };
 
 export function useInspections(applicationId: string) {
+  const role = useAuthStore((s) => s.user?.role);
   return useQuery({
     queryKey: inspectionKeys.list(applicationId),
     queryFn: () =>
       applicationService.getInspections(applicationId).then((r) => r.data),
-    enabled: !!applicationId,
+    enabled: !!applicationId && role !== 'district_admin',
   });
 }
 

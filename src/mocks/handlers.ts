@@ -21,7 +21,6 @@ import type {
   CreateApplicationRequest,
   CreateDistrictReq,
   UpdateDistrictReq,
-  UpdateApplicationStatusRequest,
   ReviewRequest,
   SignRequest,
   CompleteWateringRequest,
@@ -241,17 +240,12 @@ const applicationHandlers = [
     return HttpResponse.json({ success: true, message: 'Deleted' });
   }),
 
-  // ── Unified workflow transition ───────────────────────────
+  // ── Submit (district_admin → admin) ──────────────────────
   //
-  // PATCH /applications/:id/status
+  // POST /applications/:id/submit  (no body)
   //
-  // Single endpoint for every status change. The user is derived
-  // from the bearer token (see getUserFromAuth) and the requested
-  // (from → to) transition is checked against ALLOWED_TRANSITIONS.
-  // Returns 401 if no token, 403 if the role isn't allowed to make
-  // this transition, 404 if the application is missing, 409 if the
-  // transition is invalid from the current status.
-  http.patch(`${BASE}/applications/:id/status`, async ({ params, request }) => {
+  // District admin submits a draft or clarification-needed application.
+  http.post(`${BASE}/applications/:id/submit`, async ({ params, request }) => {
     await delay(300);
 
     const user = getUserFromAuth(request);
@@ -259,6 +253,13 @@ const applicationHandlers = [
       return HttpResponse.json(
         { success: false, message: 'Unauthorized' },
         { status: 401 },
+      );
+    }
+
+    if (user.role !== 'district_admin') {
+      return HttpResponse.json(
+        { success: false, message: 'Forbidden: only district_admin can submit' },
+        { status: 403 },
       );
     }
 
@@ -270,45 +271,21 @@ const applicationHandlers = [
       );
     }
 
-    const body = (await request.json()) as UpdateApplicationStatusRequest;
-    const allowed = ALLOWED_TRANSITIONS[app.status] ?? [];
-    const fromHere = allowed.find((t) => t.to === body.status);
-
-    if (!fromHere) {
+    if (app.status !== 'draft' && app.status !== 'clarification_needed') {
       return HttpResponse.json(
-        {
-          success: false,
-          message: `Invalid transition: ${app.status} → ${body.status}`,
-        },
+        { success: false, message: `Cannot submit from status '${app.status}'` },
         { status: 409 },
       );
     }
 
-    if (fromHere.role !== user.role) {
-      return HttpResponse.json(
-        {
-          success: false,
-          message: `Forbidden: role '${user.role}' cannot perform ${app.status} → ${body.status}`,
-        },
-        { status: 403 },
-      );
-    }
-
-    if (body.status === 'rejected' && !body.reason) {
-      return HttpResponse.json(
-        { success: false, message: 'reason is required when rejecting' },
-        { status: 400 },
-      );
-    }
-
-    applyTransition(app, body);
+    app.status = 'pending_admin';
     return HttpResponse.json({ success: true, data: app });
   }),
 
   // ── POST /applications/:id/review  (Admin) ─────────────────
   //
   // Swagger-compliant endpoint. Body: ReviewRequest
-  //   action === 'approve'  → pending_admin → pending_super_admin
+  //   action === 'approve'  → pending_admin → pending_superadmin
   //   action === 'clarify'  → pending_admin → clarification_needed
   //   action === 'reject'   → pending_admin → rejected
   http.post(`${BASE}/applications/:id/review`, async ({ params, request }) => {
@@ -359,7 +336,7 @@ const applicationHandlers = [
     switch (body.action) {
       case 'approve':
         applyTransition(app, {
-          status: 'pending_super_admin',
+          status: 'pending_superadmin',
           notes: body.admin_notes,
         });
         break;
@@ -417,7 +394,7 @@ const applicationHandlers = [
         { status: 404 },
       );
     }
-    if (app.status !== 'pending_super_admin') {
+    if (app.status !== 'pending_superadmin') {
       return HttpResponse.json(
         {
           success: false,
@@ -463,40 +440,10 @@ const applicationHandlers = [
   }),
 ];
 
-// ── Workflow rules ──────────────────────────────────────────
-//
-// (current status) → list of (allowed next status, role that may
-// perform it). Anything not listed is rejected with 409.
-
-interface TransitionRule {
-  to: ApplicationStatus;
-  role: UserRole;
-}
-
-const ALLOWED_TRANSITIONS: Partial<Record<ApplicationStatus, TransitionRule[]>> = {
-  draft: [
-    { to: 'pending_admin', role: 'district_admin' },
-  ],
-  clarification_needed: [
-    { to: 'pending_admin', role: 'district_admin' },
-  ],
-  pending_admin: [
-    { to: 'pending_super_admin', role: 'admin' },
-    { to: 'clarification_needed', role: 'admin' },
-    { to: 'rejected', role: 'admin' },
-  ],
-  pending_super_admin: [
-    { to: 'signed', role: 'super_admin' },
-    { to: 'rejected', role: 'super_admin' },
-  ],
-  // signed / rejected / watering_in_progress / completed are terminal
-  // for the approval workflow. Watering progression is owned by
-  // /watering-tasks/:id/complete, not this endpoint.
-};
 
 function applyTransition(
   app: Application,
-  body: UpdateApplicationStatusRequest,
+  body: { status: ApplicationStatus; reason?: string; notes?: string },
 ): void {
   app.status = body.status;
 
@@ -506,7 +453,7 @@ function applyTransition(
       if (body.notes) app.notes = body.notes;
       break;
 
-    case 'pending_super_admin':
+    case 'pending_superadmin':
       app.admin_notes = body.notes ?? 'Approved by admin';
       break;
 

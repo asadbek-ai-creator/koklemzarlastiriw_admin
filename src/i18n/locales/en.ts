@@ -114,7 +114,7 @@ const en = {
   // ── Status labels ───────────────────────────────────────────
   'status.draft': 'Draft',
   'status.pending_admin': 'Pending Admin',
-  'status.pending_super_admin': 'Pending SuperAdmin',
+  'status.pending_superadmin': 'Pending SuperAdmin',
   'status.clarification_needed': 'Clarification',
   'status.signed': 'Signed',
   'status.completed': 'Completed',
